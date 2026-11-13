@@ -44,6 +44,32 @@ export const authenticate = (
   }
 };
 
+export interface OptionalAuthRequest extends AuthRequest {
+  token?: string;
+}
+
+// Guests are allowed through; an invalid token is treated as a guest rather than rejected.
+export const optionalAuthenticate = (
+  req: OptionalAuthRequest,
+  _res: Response,
+  next: NextFunction,
+) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (token) {
+    try {
+      req.user = jwt.verify(token, getJwtSecret()) as {
+        id: number;
+        email: string;
+        role: string;
+      };
+      req.token = token;
+    } catch {
+      req.user = undefined;
+    }
+  }
+  next();
+};
+
 export const requireAdmin = (
   req: AuthRequest,
   res: Response,
