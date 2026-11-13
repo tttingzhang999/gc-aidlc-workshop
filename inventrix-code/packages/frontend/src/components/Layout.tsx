@@ -45,6 +45,11 @@ function useNavItems(): NavItem[] {
       match: (p) => p.startsWith("/gomoku"),
     },
     {
+      to: "/snake",
+      label: "Snake",
+      match: (p) => p.startsWith("/snake"),
+    },
+    {
       to: "/architecture",
       label: "Architecture",
       match: (p) => p.startsWith("/architecture"),

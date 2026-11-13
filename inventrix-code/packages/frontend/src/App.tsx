@@ -24,6 +24,7 @@ import Cart from "./pages/Cart";
 import Gomoku from "./pages/Gomoku";
 import Architecture from "./pages/Architecture";
 import Role from "./pages/Role";
+import Snake from "./pages/Snake";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import type { RedirectState } from "./lib/redirect";
@@ -64,6 +65,7 @@ function App() {
               <Route path="products/:id" element={<ProductDetail />} />
               <Route path="gomoku" element={<Gomoku />} />
               <Route path="architecture" element={<Architecture />} />
+              <Route path="snake" element={<Snake />} />
               <Route path="cart" element={<Cart />} />
               <Route path="role" element={<Role />} />
               <Route

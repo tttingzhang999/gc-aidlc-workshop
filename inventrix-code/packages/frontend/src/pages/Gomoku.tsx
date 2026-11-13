@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import LaunchOverlay from "../components/LaunchOverlay";
 import PageHeading from "../components/PageHeading";
+import TauntDialog, { randomTaunt } from "../components/TauntDialog";
 import {
   PENALTY_MULTIPLIER,
   SURRENDER_MULTIPLIER,
   useCart,
 } from "../context/CartContext";
 import { celebrate } from "../fx/celebrate";
-import { gsap, useGSAP } from "../fx/gsap";
 import { celebrateOrder } from "../fx/orderFx/celebrateOrder";
 import { readDevOverride } from "../fx/orderFx/devOverride";
 import { pickTheme } from "../fx/orderFx/pickTheme";
@@ -27,15 +27,6 @@ const BOARD_SIZE = 15;
 const WIN_LENGTH = 5;
 const CELL_PX = 48;
 
-// One of these pops up at random when the player loses.
-const TAUNTS = [
-  "殺仁諸勳",
-  "日久見仁勳",
-  "公道自在仁勳",
-  "知仁知面不知勳",
-  "黃仁之勳不可無",
-] as const;
-
 interface ClaimResult {
   added: { product_id: number; quantity: number }[];
   multiplier: number;
@@ -53,50 +44,6 @@ interface HoverTip {
   text: string;
   x: number;
   y: number;
-}
-
-function TauntDialog({ text, onClose }: { text: string; onClose: () => void }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  useGSAP(
-    () => {
-      gsap.from("[data-backdrop]", { opacity: 0, duration: 0.25 });
-      gsap.from("[data-taunt]", {
-        scale: 0.2,
-        rotation: -12,
-        opacity: 0,
-        duration: 0.7,
-        ease: "back.out(2.5)",
-      });
-    },
-    { scope: rootRef },
-  );
-  return (
-    <div
-      ref={rootRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={text}
-      data-testid="taunt-dialog"
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-4"
-    >
-      <div
-        data-backdrop
-        onClick={onClose}
-        className="absolute inset-0 bg-void/85 backdrop-blur-sm"
-      />
-      <div
-        data-taunt
-        className="glass relative flex flex-col items-center gap-8 rounded-[var(--radius-blob)] border-neon-red/70 px-8 py-12 shadow-neon-red md:px-16"
-      >
-        <p className="font-display text-5xl leading-tight font-black tracking-tight text-neon-red text-glow md:text-7xl">
-          {text}
-        </p>
-        <Button autoFocus variant="danger" onClick={onClose}>
-          OK
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 export default function Gomoku() {
@@ -192,7 +139,7 @@ export default function Gomoku() {
       setLastMove(data.lastMove ?? null);
       if (data.status === "won") celebrate();
       if (data.status === "lost")
-        setTaunt(TAUNTS[Math.floor(Math.random() * TAUNTS.length)]);
+        setTaunt(randomTaunt());
     } catch (err: unknown) {
       setGame(previous);
       setLastMove(null);
