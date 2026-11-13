@@ -64,7 +64,8 @@
 - 一個 Lambda 執行整個 Express app，經 RDS Data API 存取 Aurora，所以 Lambda 不必放進 VPC，也不需要 NAT Gateway。
 - Lambda 冷啟動時從 Secrets Manager 讀取 JWT secret；呼叫 Data API 時帶上資料庫帳密的 secret ARN。
 - WAF 掛在 CloudFront 上，套用 AWS managed rules，並對 `/api/auth/` 與 `/api/` 做每個 IP 的速率限制。
-- AgentCore Runtime 屬於工作坊既有的 `workshop-stack`，Inventrix 目前沒有整合。
+- AI 客服 Orbit 跑在 Inventrix 自己的 AgentCore Runtime（`inventrix_support`，Node.js 22 加 Strands Agents）。Lambda 以 IAM 呼叫 `InvokeAgentRuntime`，agent 的工具再經 HTTP API 查詢商品與訂單。
+- 工作坊既有 `workshop-stack` 的 AgentCore Runtime 維持原狀，Inventrix 不使用它。
 
 可編輯的原始檔是 [inventrix-serverless.drawio](infra/docs/inventrix-serverless.drawio)。架構評估與各項取捨見 [architecture-assessment.md](infra/docs/architecture-assessment.md)。
 

@@ -4,15 +4,14 @@
   "language": "zh-Hant",
   "source": {
     "repository": ". (repository root)",
-    "revision": "working tree on top of c6bbc51 (infra/ and inventrix-code/packages/api changes uncommitted)",
-    "method": "static reading of infra/lib/inventrix-stack.ts and inventrix-code/packages/api/src; AgentCore placement from the account inventory taken earlier in this session"
+    "revision": "working tree on top of 23a0815 (AI support chatbot changes uncommitted)",
+    "method": "static reading of infra/lib/inventrix-stack.ts, inventrix-code/packages/api/src and inventrix-code/packages/support-agent/src"
   },
   "scope": {
     "account": "471112531231",
     "region": "us-east-1 (single region, so no Region group is drawn)",
     "stacks": [
-      "inventrix (new)",
-      "workshop-stack (existing, AgentCore only)"
+      "inventrix"
     ]
   },
   "resources": [
@@ -21,10 +20,10 @@
       "type": "AWS::CloudFront::Distribution",
       "behaviors": {
         "default /*": "SiteBucket via OAC, CloudFront Function SpaRewrite (viewer request)",
-        "/api/*": "HttpApi execute-api domain, HTTPS only, ApiCachePolicy (TTL 0, Authorization in key)",
+        "/api/*": "HttpApi execute-api domain, HTTPS only, ApiCachePolicy (min/default TTL 0, max 1 s, Authorization in key)",
         "/images/*": "ImagesBucket via OAC"
       },
-      "source": "infra/lib/inventrix-stack.ts:250"
+      "source": "infra/lib/inventrix-stack.ts:340"
     },
     {
       "id": "waf",
@@ -34,38 +33,39 @@
         "AWSManagedRulesCommonRuleSet",
         "AWSManagedRulesKnownBadInputsRuleSet",
         "AuthRateLimit /api/auth/ 20 per 600s per IP",
-        "ApiRateLimit /api/ 2000 per 600s per IP"
+        "ApiRateLimit /api/ 2000 per 600s per IP",
+        "SupportChatRateLimit /api/support/ 100 per 600s per IP"
       ],
       "attached_to": "cloudfront (webAclId)",
       "note": "inline on CloudFront, not a separate hop; drawn beside CloudFront without an edge",
-      "source": "infra/lib/inventrix-stack.ts:254, :337"
+      "source": "infra/lib/inventrix-stack.ts:344, :427"
     },
     {
       "id": "s3_site",
       "type": "AWS::S3::Bucket",
       "role": "frontend SPA build output (packages/frontend/dist)",
       "deletion_policy": "Delete (autoDeleteObjects)",
-      "source": "infra/lib/inventrix-stack.ts:225"
+      "source": "infra/lib/inventrix-stack.ts:315"
     },
     {
       "id": "s3_images",
       "type": "AWS::S3::Bucket",
       "role": "product images under images/ (24 seed images + AI-generated images)",
       "deletion_policy": "Retain",
-      "source": "infra/lib/inventrix-stack.ts:133"
+      "source": "infra/lib/inventrix-stack.ts:156"
     },
     {
       "id": "httpapi",
       "type": "AWS::ApiGatewayV2::Api (HTTP)",
       "stage": "$default, throttle rate 50 / burst 100",
-      "source": "infra/lib/inventrix-stack.ts:208"
+      "source": "infra/lib/inventrix-stack.ts:237, stage :241-246"
     },
     {
       "id": "lambda_api",
       "type": "AWS::Lambda::Function",
       "runtime": "nodejs22.x arm64, 1024 MB, 29 s timeout",
       "code": "inventrix-code/packages/api/src/lambda.ts (Express app via @codegenie/serverless-express)",
-      "source": "infra/lib/inventrix-stack.ts:165"
+      "source": "infra/lib/inventrix-stack.ts:188"
     },
     {
       "id": "aurora",
@@ -73,27 +73,45 @@
       "engine": "aurora-postgresql 17.9, Serverless v2 0-2 ACU, auto-pause after 30 min, Data API enabled",
       "placement": "Inventrix VPC, two isolated subnets (not drawn in connectivity preset)",
       "deletion_policy": "Snapshot",
-      "source": "infra/lib/inventrix-stack.ts:115"
+      "source": "infra/lib/inventrix-stack.ts:138"
     },
     {
       "id": "secret_db",
       "type": "AWS::SecretsManager::Secret",
       "role": "Aurora master credentials (DatabaseSecret)",
       "deletion_policy": "Retain",
-      "source": "infra/lib/inventrix-stack.ts:110"
+      "source": "infra/lib/inventrix-stack.ts:133"
     },
     {
       "id": "secret_jwt",
       "type": "AWS::SecretsManager::Secret",
       "role": "JWT signing secret",
       "deletion_policy": "Retain",
-      "source": "infra/lib/inventrix-stack.ts:148"
+      "source": "infra/lib/inventrix-stack.ts:171"
     },
     {
       "id": "bedrock",
-      "type": "Amazon Bedrock foundation model",
-      "model": "amazon.nova-canvas-v1:0",
-      "source": "inventrix-code/packages/api/src/services/imageGenerator.ts:61"
+      "type": "Amazon Bedrock foundation models",
+      "models": [
+        "amazon.nova-canvas-v1:0 (Lambda image generation)",
+        "anthropic.claude-haiku-4-5-20251001-v1:0 via the us. cross-region inference profile (support agent)"
+      ],
+      "source": "inventrix-code/packages/api/src/services/imageGenerator.ts:61; infra/lib/inventrix-stack.ts:68-70"
+    },
+    {
+      "id": "agentcore_support",
+      "type": "AWS::BedrockAgentCore::Runtime",
+      "name": "inventrix_support",
+      "owner": "inventrix stack",
+      "artifact": "code asset, NODE_22, entrypoint index.js (esbuild bundle of inventrix-code/packages/support-agent)",
+      "agent": "Strands Agents TypeScript SDK, tools search_products / get_product, plus list_my_orders / get_order when the caller is signed in",
+      "network_mode": "PUBLIC (default)",
+      "idle_timeout": "15 min",
+      "env": [
+        "INVENTRIX_API_URL = HttpApi apiEndpoint",
+        "SUPPORT_MODEL_ID = us. inference profile"
+      ],
+      "source": "infra/lib/inventrix-stack.ts:250-308"
     },
     {
       "id": "agentcore_runtime",
@@ -101,8 +119,10 @@
       "name": "strands_agent (strands_agent-5bZj36HD5A)",
       "owner": "workshop-stack (native resource, logical id AIDLCPlatformAgentsRuntime91CB2838)",
       "network_mode": "VPC (retail-store-vpc)",
-      "integration": "none: no Inventrix code or IaC references it",
-      "source": "infra/templates/workshop-stack.template.json:12238 (included by infra/lib/workshop-stack.ts:28)"
+      "integration": "none: Inventrix runs its own Runtime (agentcore_support) and does not use this one",
+      "source": "infra/templates/workshop-stack.template.json:12237 (included by infra/lib/workshop-stack.ts:28)",
+      "shown": false,
+      "note": "removed from the page; workshop platform resource left unchanged"
     },
     {
       "id": "vpc",
@@ -152,35 +172,35 @@
       "to": "cloudfront",
       "kind": "HTTPS",
       "confidence": "confirmed",
-      "evidence": "Distribution is the intended public entry (inventrix-stack.ts:257 REDIRECT_TO_HTTPS); execute-api is also publicly reachable, see limitations"
+      "evidence": "Distribution is the intended public entry (inventrix-stack.ts:347 REDIRECT_TO_HTTPS); execute-api is also publicly reachable, see limitations"
     },
     {
       "from": "cloudfront",
       "to": "s3_site",
       "kind": "default behavior, OAC",
       "confidence": "confirmed",
-      "evidence": "inventrix-stack.ts:256 defaultBehavior S3BucketOrigin.withOriginAccessControl(siteBucket)"
+      "evidence": "inventrix-stack.ts:346 defaultBehavior S3BucketOrigin.withOriginAccessControl(siteBucket)"
     },
     {
       "from": "cloudfront",
       "to": "httpapi",
       "kind": "/api/*",
       "confidence": "confirmed",
-      "evidence": "inventrix-stack.ts:264 HttpOrigin(<apiId>.execute-api...)"
+      "evidence": "inventrix-stack.ts:338, :355 HttpOrigin(<apiId>.execute-api...)"
     },
     {
       "from": "cloudfront",
       "to": "s3_images",
       "kind": "/images/*, OAC",
       "confidence": "confirmed",
-      "evidence": "inventrix-stack.ts:274 S3BucketOrigin.withOriginAccessControl(imagesBucket)"
+      "evidence": "inventrix-stack.ts:365 S3BucketOrigin.withOriginAccessControl(imagesBucket)"
     },
     {
       "from": "httpapi",
       "to": "lambda_api",
       "kind": "proxy integration",
       "confidence": "confirmed",
-      "evidence": "inventrix-stack.ts:209 defaultIntegration HttpLambdaIntegration"
+      "evidence": "inventrix-stack.ts:238 defaultIntegration HttpLambdaIntegration"
     },
     {
       "from": "lambda_api",
@@ -188,7 +208,7 @@
       "kind": "RDS Data API ExecuteStatement / transactions",
       "label": "Data API",
       "confidence": "confirmed",
-      "evidence": "api/src/db/dataApi.ts:75 ExecuteStatementCommand; inventrix-stack.ts:193 grantDataApiAccess"
+      "evidence": "api/src/db/dataApi.ts:75 ExecuteStatementCommand; inventrix-stack.ts:222 grantDataApiAccess"
     },
     {
       "from": "lambda_api",
@@ -196,21 +216,22 @@
       "kind": "Data API reads the DB secret with the Lambda identity, from the secretArn passed on every call",
       "label": "經 Data API 讀取",
       "confidence": "confirmed",
-      "evidence": "api/src/db/index.ts:17 DB_SECRET_ARN; api/src/db/dataApi.ts:75-78, :100-102 secretArn on ExecuteStatement/Begin/Commit; inventrix-stack.ts:193 grantDataApiAccess grants secret read to the Lambda"
+      "evidence": "api/src/db/index.ts:17 DB_SECRET_ARN; api/src/db/dataApi.ts:75-78, :94, :100-102 secretArn on ExecuteStatement/Begin/Commit; inventrix-stack.ts:222 grantDataApiAccess grants secret read to the Lambda"
     },
     {
       "from": "lambda_api",
       "to": "secret_jwt",
       "kind": "GetSecretValue at cold start",
       "confidence": "confirmed",
-      "evidence": "api/src/secrets.ts:12 GetSecretValueCommand(JWT_SECRET_ARN); inventrix-stack.ts:194 grantRead"
+      "evidence": "api/src/secrets.ts:12 GetSecretValueCommand(JWT_SECRET_ARN); inventrix-stack.ts:223 grantRead"
     },
     {
       "from": "lambda_api",
       "to": "bedrock",
       "kind": "InvokeModel (image generation)",
       "confidence": "confirmed",
-      "evidence": "api/src/services/imageGenerator.ts:60 InvokeModelCommand amazon.nova-canvas-v1:0"
+      "evidence": "api/src/services/imageGenerator.ts:60 InvokeModelCommand amazon.nova-canvas-v1:0",
+      "label": "Nova Canvas"
     },
     {
       "from": "lambda_api",
@@ -218,15 +239,40 @@
       "kind": "PutObject images/<timestamp>-<name>.png",
       "label": "寫入生成圖片",
       "confidence": "confirmed",
-      "evidence": "api/src/services/imageGenerator.ts:24 PutObjectCommand(IMAGES_BUCKET); inventrix-stack.ts:195 grantPut images/*"
+      "evidence": "api/src/services/imageGenerator.ts:24 PutObjectCommand(IMAGES_BUCKET); inventrix-stack.ts:224 grantPut images/*"
+    },
+    {
+      "from": "lambda_api",
+      "to": "agentcore_support",
+      "kind": "InvokeAgentRuntime (IAM, POST /api/support/chat)",
+      "confidence": "confirmed",
+      "evidence": "api/src/services/supportAgent.ts:39-40 InvokeAgentRuntimeCommand; inventrix-stack.ts:96-100 SUPPORT_AGENT_RUNTIME_ARN env + grantInvokeRuntime"
+    },
+    {
+      "from": "agentcore_support",
+      "to": "bedrock",
+      "kind": "Converse via Strands BedrockModel",
+      "label": "Claude Haiku 4.5",
+      "confidence": "confirmed",
+      "evidence": "support-agent/src/agent.ts:16-17 BedrockModel(SUPPORT_MODEL_ID); inventrix-stack.ts:286, :300-303 env + InvokeModel policy"
+    },
+    {
+      "from": "agentcore_support",
+      "to": "httpapi",
+      "kind": "agent tools GET /api/products and /api/orders on the execute-api endpoint, forwarding the user token for orders",
+      "label": "工具直連 execute-api",
+      "confidence": "confirmed",
+      "evidence": "support-agent/src/inventrixApi.ts:40, :46 fetch(INVENTRIX_API_URL...); inventrix-stack.ts:285 INVENTRIX_API_URL = httpApi.apiEndpoint"
     }
   ],
   "assumptions": [
-    "AgentCore Runtime is drawn for context only; Inventrix has no call path to it."
+    "The agent's tools target the execute-api endpoint rather than CloudFront, because pointing them at the Distribution would create a CloudFormation dependency cycle."
   ],
   "limitations": [
-    "The execute-api endpoint is publicly reachable and bypasses WAF.",
+    "The execute-api endpoint is publicly reachable and bypasses WAF; the support agent's tool calls also bypass WAF this way.",
+    "The us. inference profile can route Claude Haiku 4.5 inference to us-east-2 or us-west-2, although every deployed resource stays in us-east-1.",
     "Aurora auto-pauses at 0 ACU; the first request after a pause waits for resume (Data API retries up to 25 s).",
-    "Single Aurora writer, no reader (not shown in connectivity preset)."
+    "Single Aurora writer, no reader (not shown in connectivity preset).",
+    "The AgentCore Runtime path is verified by synth and a local mock only; it has not been deployed."
   ]
 }
