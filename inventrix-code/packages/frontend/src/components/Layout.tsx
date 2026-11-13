@@ -7,6 +7,7 @@ import {
 } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { gsap } from "../fx/gsap";
 import Button from "../ui/Button";
 import LinkButton from "../ui/LinkButton";
@@ -17,6 +18,7 @@ interface NavItem {
   to: string;
   label: string;
   match: (path: string) => boolean;
+  badge?: number;
 }
 
 const FOOTER_TICKER = [
@@ -29,11 +31,23 @@ const FOOTER_TICKER = [
 
 function useNavItems(): NavItem[] {
   const { user } = useAuth();
+  const { count } = useCart();
   const items: NavItem[] = [
     {
       to: "/",
       label: "Store",
       match: (p) => p === "/" || p.startsWith("/products"),
+    },
+    {
+      to: "/gomoku",
+      label: "Gomoku",
+      match: (p) => p.startsWith("/gomoku"),
+    },
+    {
+      to: "/cart",
+      label: "Cart",
+      match: (p) => p.startsWith("/cart"),
+      badge: count,
     },
   ];
   if (user)
@@ -156,6 +170,14 @@ export default function Layout() {
                 className="relative rounded-full px-5 py-2 font-display text-xs font-bold uppercase tracking-widest text-white/80 transition-colors hover:text-white"
               >
                 {item.label}
+                {item.badge ? (
+                  <span
+                    data-testid="nav-cart-count"
+                    className="ml-2 rounded-full bg-neon-lime px-1.5 py-0.5 text-[0.6rem] font-black text-void"
+                  >
+                    {item.badge}
+                  </span>
+                ) : null}
               </Link>
             ))}
           </div>
@@ -243,6 +265,7 @@ export default function Layout() {
               className={`font-display text-5xl font-black tracking-tighter uppercase ${item.match(pathname) ? "text-gradient" : "text-white"}`}
             >
               {item.label}
+              {item.badge ? ` (${item.badge})` : ""}
             </Link>
           ))}
           <div data-menu-item className="mt-8 flex flex-wrap gap-3">

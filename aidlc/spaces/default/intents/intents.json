@@ -8,11 +8,11 @@
     "request": "dec90530"
   },
   {
-    "uuid": "01a1d3b6-ab09-7def-9429-2d7518783515",
-    "slug": "product-mall-buttons",
-    "dirName": "261113-product-mall-buttons",
-    "scope": "express",
+    "uuid": "01a1d37d-6c2f-740e-b346-cca829da1ebc",
+    "slug": "iac-import-modernize",
+    "dirName": "261113-iac-import-modernize",
+    "scope": "poc",
     "status": "in-flight",
-    "request": "62297f4e"
+    "request": "e562ea17"
   }
 ]

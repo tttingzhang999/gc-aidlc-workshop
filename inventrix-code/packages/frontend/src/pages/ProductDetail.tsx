@@ -1,25 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import type { MouseEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import LaunchOverlay from "../components/LaunchOverlay";
+import { Link, useParams } from "react-router-dom";
 import MallButtons from "../components/MallButtons";
-import QuantityStepper from "../components/QuantityStepper";
-import { useAuth } from "../context/AuthContext";
-import { celebrate } from "../fx/celebrate";
 import { gsap, useGSAP } from "../fx/gsap";
-import { shake } from "../fx/shake";
-import { apiFetch, toApiError } from "../lib/api";
 import { formatPrice } from "../lib/format";
-import type { RedirectState } from "../lib/redirect";
-import type { CreatedOrder, Product } from "../lib/types";
+import type { Product } from "../lib/types";
 import { useApi } from "../lib/useApi";
-import Button from "../ui/Button";
+import LinkButton from "../ui/LinkButton";
 import ErrorState from "../ui/ErrorState";
 import Skeleton from "../ui/Skeleton";
-import { useToast } from "../ui/Toast";
 import NotFound from "./NotFound";
 
-const REDIRECT_AFTER_LAUNCH_MS = 1800;
 
 function DetailSkeleton() {
   return (
@@ -36,33 +27,14 @@ function DetailSkeleton() {
 
 export default function ProductDetail() {
   const { id = "" } = useParams();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const toast = useToast();
   const {
     data: product,
     error,
     loading,
     reload,
-    setData,
   } = useApi<Product>(`/api/products/${encodeURIComponent(id)}`);
-  const [quantity, setQuantity] = useState(1);
-  const [ordering, setOrdering] = useState(false);
-  const [launchedId, setLaunchedId] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (launchedId === null) return;
-    const timer = window.setTimeout(
-      () => navigate("/orders"),
-      REDIRECT_AFTER_LAUNCH_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [launchedId, navigate]);
-
-  useEffect(() => setQuantity(1), [id]);
 
   useGSAP(
     () => {
@@ -111,29 +83,6 @@ export default function ProductDetail() {
     });
   };
 
-  const handleOrder = async () => {
-    if (!product) return;
-    if (!user) {
-      const state: RedirectState = { from: `/products/${product.id}` };
-      navigate("/login", { state });
-      return;
-    }
-    setOrdering(true);
-    try {
-      const order = await apiFetch<CreatedOrder>("/api/orders", {
-        method: "POST",
-        body: { items: [{ product_id: product.id, quantity }] },
-      });
-      celebrate();
-      setData({ ...product, stock: product.stock - quantity });
-      setLaunchedId(order.id);
-    } catch (err: unknown) {
-      shake(panelRef.current);
-      toast.error("Launch aborted", toApiError(err).message);
-      setOrdering(false);
-    }
-  };
-
   if (loading && !product) return <DetailSkeleton />;
   if (error?.status === 404) {
     return (
@@ -150,7 +99,6 @@ export default function ProductDetail() {
 
   return (
     <div ref={rootRef} className="flex flex-col gap-8">
-      {launchedId !== null && <LaunchOverlay orderId={launchedId} />}
       <Link
         to="/"
         data-testid="back-to-store"
@@ -185,7 +133,6 @@ export default function ProductDetail() {
         </div>
 
         <div
-          ref={panelRef}
           className="glass flex flex-col gap-6 rounded-[var(--radius-blob)] p-6 md:p-10"
         >
           <span
@@ -213,29 +160,25 @@ export default function ProductDetail() {
           </p>
 
           {inStock ? (
-            <div data-fly className="flex flex-col gap-5">
-              <div className="flex items-center gap-4">
-                <QuantityStepper
-                  value={quantity}
-                  min={1}
-                  max={product.stock}
-                  onChange={setQuantity}
-                  disabled={ordering}
-                />
-                <span className="text-sm text-white/50">
-                  Total {formatPrice(product.price * quantity)} + GST
-                </span>
-              </div>
-              <Button
+            <div
+              data-fly
+              data-testid="gomoku-hint"
+              className="flex flex-col gap-4 rounded-2xl border border-neon-violet/50 bg-neon-violet/10 p-5"
+            >
+              <p className="text-white/75">
+                🎮 Products are checked out through the cart. Win a game of
+                Gomoku to claim the products under your stones (lose and it
+                costs 10x).
+              </p>
+              <LinkButton
+                to="/gomoku"
+                variant="primary"
                 size="lg"
-                onClick={handleOrder}
-                loading={ordering}
-                loadingText="Charging thrusters…"
-                data-testid="launch-order"
+                testId="play-gomoku"
                 className="w-full"
               >
-                {user ? "Launch order 🚀" : "Login to launch"}
-              </Button>
+                Play Gomoku →
+              </LinkButton>
             </div>
           ) : (
             <p

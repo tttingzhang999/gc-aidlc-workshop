@@ -1,47 +1,82 @@
 import { Router } from 'express';
-import bcrypt from 'bcrypt';
-import db from '../db.js';
+import bcrypt from 'bcryptjs';
+import { getDb } from '../db/index.js';
+import { asyncRoute } from '../http.js';
 import { generateToken } from '../middleware/auth.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
 
+interface UserRow {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  role: string;
+}
+
 const router = Router();
 
-router.post('/login', authRateLimit, (req, res) => {
-  const { email, password } = req.body;
+router.post(
+  '/login',
+  authRateLimit,
+  asyncRoute(async (req, res) => {
+    const { email, password } = req.body;
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+    const db = await getDb();
+    const [user] = await db.query<UserRow>(
+      'SELECT * FROM users WHERE email = $1::text',
+      [email],
+    );
 
-  if (!user || !bcrypt.compareSync(password, user.password)) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-  const token = generateToken({ id: user.id, email: user.email, role: user.role });
-  
-  res.json({
-    token,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role }
-  });
-});
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
-router.post('/register', authRateLimit, (req, res) => {
-  const { email, password, name } = req.body;
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  }),
+);
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-  if (existing) {
-    return res.status(400).json({ error: 'Email already registered' });
-  }
+router.post(
+  '/register',
+  authRateLimit,
+  asyncRoute(async (req, res) => {
+    const { email, password, name } = req.body;
 
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  const result = db.prepare('INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)').run(
-    email, hashedPassword, name, 'customer'
-  );
+    const db = await getDb();
+    const [existing] = await db.query(
+      'SELECT id FROM users WHERE email = $1::text',
+      [email],
+    );
+    if (existing) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
 
-  const token = generateToken({ id: result.lastInsertRowid as number, email, role: 'customer' });
-  
-  res.status(201).json({
-    token,
-    user: { id: result.lastInsertRowid, email, name, role: 'customer' }
-  });
-});
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [created] = await db.query<{ id: number }>(
+      "INSERT INTO users (email, password, name, role) VALUES ($1::text, $2::text, $3::text, 'customer') RETURNING id",
+      [email, hashedPassword, name],
+    );
+
+    const token = generateToken({ id: created.id, email, role: 'customer' });
+
+    res.status(201).json({
+      token,
+      user: { id: created.id, email, name, role: 'customer' },
+    });
+  }),
+);
 
 export default router;

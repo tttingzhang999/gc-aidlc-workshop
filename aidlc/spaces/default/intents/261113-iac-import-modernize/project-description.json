@@ -1,0 +1,1 @@
+"create IaC at this repo\nimport all existing resources\n然後評估架構如何改進\n\n* 前端改成 s3 + cloudfront\n* 後端改成 api gateway + lambda\n* Db 改成 rds 或 aurora\n* agentcore runtime 可以續用"

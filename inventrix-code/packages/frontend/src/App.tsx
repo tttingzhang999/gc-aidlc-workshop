@@ -6,6 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
 import AmbientBackground from "./fx/AmbientBackground";
 import CustomCursor from "./fx/CustomCursor";
 import PageTransition from "./fx/PageTransition";
@@ -19,6 +20,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminOrders from "./pages/AdminOrders";
 import AdminInventory from "./pages/AdminInventory";
+import Cart from "./pages/Cart";
+import Gomoku from "./pages/Gomoku";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import type { RedirectState } from "./lib/redirect";
@@ -45,6 +48,7 @@ const ProtectedRoute = ({
 function App() {
   return (
     <AuthProvider>
+      <CartProvider>
       <BrowserRouter>
         <ToastProvider>
           <AmbientBackground />
@@ -56,6 +60,8 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Storefront />} />
               <Route path="products/:id" element={<ProductDetail />} />
+              <Route path="gomoku" element={<Gomoku />} />
+              <Route path="cart" element={<Cart />} />
               <Route
                 path="orders"
                 element={
@@ -101,6 +107,7 @@ function App() {
           </Routes>
         </ToastProvider>
       </BrowserRouter>
+      </CartProvider>
     </AuthProvider>
   );
 }

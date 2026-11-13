@@ -27,3 +27,4 @@ aidlc/diagnostics/
 # END AI-DLC:gitignore
 
 .DS_Store
+.claude/worktrees/
