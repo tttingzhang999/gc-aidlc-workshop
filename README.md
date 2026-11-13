@@ -52,7 +52,8 @@
 - **🧩 本機與雲端共用同一套 SQL：** 本機開發用 PGlite，Lambda 經 Data API 連 Aurora，兩邊執行同一份 PostgreSQL 查詢。
 - **🧪 既有資源程式碼化：** 工作坊平台的 `workshop-stack` 以 CDK 載入，`cdk diff` 對線上維持零差異。
 - **⚡️ 依用量計費：** Lambda 與 HTTP API 依請求計費，Aurora 閒置 30 分鐘後自動暫停到 0 ACU。
-- **🛡️ 機密不進 repo：** JWT secret 與資料庫帳密存在 Secrets Manager，匯出的平台 template 裡的測試密碼換成佔位字串。
+- **🔐 Cognito 帳號：** 以 email 和密碼註冊後即可登入，API Gateway 在請求到達 Lambda 前先驗證 Cognito token。
+- **🛡️ 機密不進 repo：** 管理員密碼與資料庫帳密存在 Secrets Manager，匯出的平台 template 裡的測試密碼換成佔位字串。
 
 ---
 
@@ -62,7 +63,9 @@
 
 - 使用者只連到 CloudFront。預設路徑讀 S3 上的前端 SPA，`/images/*` 讀商品圖片 bucket，`/api/*` 轉給 API Gateway HTTP API。
 - 一個 Lambda 執行整個 Express app，經 RDS Data API 存取 Aurora，所以 Lambda 不必放進 VPC，也不需要 NAT Gateway。
-- Lambda 冷啟動時從 Secrets Manager 讀取 JWT secret；呼叫 Data API 時帶上資料庫帳密的 secret ARN。
+- 帳號存在 Cognito user pool。Lambda 代理 `/api/auth/register` 與 `/api/auth/login`，分別呼叫 Cognito 的 `SignUp` 與 `InitiateAuth`，回傳 Cognito ID token。前端不需要知道 user pool 的設定。
+- API Gateway 的 JWT authorizer 驗證 Cognito ID token。登入、註冊、商品瀏覽，以及訪客也能使用的購物車（`/api/cart`）與五子棋（`/api/gomoku`），還有 AI 客服（`POST /api/support/chat`）都是公開路由，由 Lambda 依 token 或 `X-Guest-Id` 辨識使用者；登入使用者的 token 會轉給客服 agent 查詢訂單。其他 `/api/*` 請求沒有有效 token 就回 401，不會呼叫 Lambda。Lambda 內會再驗證一次，並以 Cognito `admin` group 判斷管理員。
+- Lambda 呼叫 Data API 時帶上資料庫帳密的 secret ARN。
 - WAF 掛在 CloudFront 上，套用 AWS managed rules，並對 `/api/auth/` 與 `/api/` 做每個 IP 的速率限制。
 - AI 客服 Orbit 跑在 Inventrix 自己的 AgentCore Runtime（`inventrix_support`，Node.js 22 加 Strands Agents）。Lambda 以 IAM 呼叫 `InvokeAgentRuntime`，agent 的工具再經 HTTP API 查詢商品與訂單。
 - 工作坊既有 `workshop-stack` 的 AgentCore Runtime 維持原狀，Inventrix 不使用它。
@@ -72,7 +75,9 @@
 ### Known Limitations
 
 - AI 商品圖生成目前無法使用。程式呼叫的 `amazon.nova-canvas-v1:0` 已停止服務，us-east-1 也沒有其他可用的文字生圖模型。
-- `execute-api` 網域可以直接呼叫，會繞過 WAF。
+- `execute-api` 網域可以直接呼叫，會繞過 WAF；需要登入的路由仍受 JWT authorizer 保護。
+- Cognito ID token 效期 1 天，沒有 refresh 機制，過期後要重新登入。
+- 被 API Gateway 擋下的請求回傳 `{"message":"Unauthorized"}`，和 Lambda 回傳的 `{"error": ...}` 格式不同。
 - Aurora 暫停後，第一個請求要等 cluster 恢復；Data API client 最多重試 25 秒。
 - 這個 repo 沒有自動化測試，驗收方式是 build 通過加上人工檢查。
 
@@ -80,17 +85,17 @@
 
 ## Features
 
-|     | Component         | Details                                                                                                                                                                                                                                                                  |
-| :-- | :---------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ⚙️  | **Architecture**  | <ul><li>CloudFront 以三個 behavior 分流到 S3 與 HTTP API</li><li>Lambda 入口 <code>packages/api/src/lambda.ts</code></li><li>本機入口 <code>packages/api/src/index.ts</code></li></ul>                                                                                   |
-| 🔩  | **Code Quality**  | <ul><li>TypeScript <code>strict</code></li><li>前端 build 先跑 <code>tsc</code></li><li>沒有 ESLint 或 Prettier 設定</li></ul>                                                                                                                                           |
-| 📄  | **Documentation** | <ul><li><code>infra/docs/architecture-assessment.md</code></li><li>draw.io 架構圖與證據 JSON</li><li>AI-DLC 產出的需求與 codekb 在 <code>aidlc/spaces/default/</code></li></ul>                                                                                          |
-| 🔌  | **Integrations**  | <ul><li>RDS Data API（<code>ExecuteStatement</code>、transaction）</li><li>S3 <code>PutObject</code> 寫入生成圖片</li><li>Bedrock <code>InvokeModel</code></li><li>Secrets Manager <code>GetSecretValue</code></li></ul>                                                 |
-| 🧩  | **Modularity**    | <ul><li>pnpm monorepo：<code>packages/api</code>、<code>packages/frontend</code></li><li>資料層共用 <code>Database</code> 介面，有 Data API 與 PGlite 兩個實作</li></ul>                                                                                                 |
-| ⚡️  | **Performance**   | <ul><li>SPA 與圖片走 <code>CACHING_OPTIMIZED</code></li><li><code>/api/*</code> TTL 0，<code>Authorization</code> 納入 cache key</li></ul>                                                                                                                               |
-| 🛡️  | **Security**      | <ul><li>S3 bucket 不公開，只允許 CloudFront OAC 讀取</li><li>WAF managed rules 與速率限制</li><li>Lambda 內沒有 JWT secret 時直接失敗，不使用預設值</li></ul>                                                                                                            |
-| 📦  | **Dependencies**  | <ul><li><code>aws-cdk-lib</code>、<code>express</code>、<code>bcryptjs</code></li><li><code>@electric-sql/pglite</code>、<code>@codegenie/serverless-express</code></li><li><code>react</code>、<code>vite</code>、<code>tailwindcss</code>、<code>gsap</code></li></ul> |
-| 🚀  | **Scalability**   | <ul><li>HTTP API stage throttle：rate 50、burst 100</li><li>Aurora Serverless v2：0 至 2 ACU</li></ul>                                                                                                                                                                   |
+|     | Component         | Details                                                                                                                                                                                                                                                                        |
+| :-- | :---------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⚙️  | **Architecture**  | <ul><li>CloudFront 以三個 behavior 分流到 S3 與 HTTP API</li><li>Lambda 入口 <code>packages/api/src/lambda.ts</code></li><li>本機入口 <code>packages/api/src/index.ts</code></li></ul>                                                                                         |
+| 🔩  | **Code Quality**  | <ul><li>TypeScript <code>strict</code></li><li>前端 build 先跑 <code>tsc</code></li><li>沒有 ESLint 或 Prettier 設定</li></ul>                                                                                                                                                 |
+| 📄  | **Documentation** | <ul><li><code>infra/docs/architecture-assessment.md</code></li><li>draw.io 架構圖與證據 JSON</li><li>AI-DLC 產出的需求與 codekb 在 <code>aidlc/spaces/default/</code></li></ul>                                                                                                |
+| 🔌  | **Integrations**  | <ul><li>RDS Data API（<code>ExecuteStatement</code>、transaction）</li><li>S3 <code>PutObject</code> 寫入生成圖片</li><li>Bedrock <code>InvokeModel</code></li><li>Cognito <code>SignUp</code>、<code>InitiateAuth</code></li></ul>                                            |
+| 🧩  | **Modularity**    | <ul><li>pnpm monorepo：<code>packages/api</code>、<code>packages/frontend</code></li><li>資料層共用 <code>Database</code> 介面，有 Data API 與 PGlite 兩個實作</li></ul>                                                                                                       |
+| ⚡️  | **Performance**   | <ul><li>SPA 與圖片走 <code>CACHING_OPTIMIZED</code></li><li><code>/api/*</code> TTL 0，<code>Authorization</code> 納入 cache key</li></ul>                                                                                                                                     |
+| 🛡️  | **Security**      | <ul><li>S3 bucket 不公開，只允許 CloudFront OAC 讀取</li><li>WAF managed rules 與速率限制</li><li>API Gateway JWT authorizer，Lambda 內以 <code>aws-jwt-verify</code> 再驗證</li><li>管理員密碼由 Secrets Manager 產生</li></ul>                                               |
+| 📦  | **Dependencies**  | <ul><li><code>aws-cdk-lib</code>、<code>express</code>、<code>aws-jwt-verify</code></li><li><code>@electric-sql/pglite</code>、<code>@codegenie/serverless-express</code></li><li><code>react</code>、<code>vite</code>、<code>tailwindcss</code>、<code>gsap</code></li></ul> |
+| 🚀  | **Scalability**   | <ul><li>HTTP API stage throttle：rate 50、burst 100</li><li>Aurora Serverless v2：0 至 2 ACU</li></ul>                                                                                                                                                                         |
 
 ---
 
@@ -190,6 +195,9 @@ AIDLC Workshop v2/
 ├── infra/
 │   ├── bin/
 │   │   └── infra.ts
+│   ├── lambda/
+│   │   ├── admin-user/
+│   │   └── pre-sign-up/
 │   ├── lib/
 │   │   ├── inventrix-stack.ts
 │   │   ├── redactions.ts
@@ -206,10 +214,11 @@ AIDLC Workshop v2/
 │   │   ├── api/
 │   │   │   ├── src/
 │   │   │   │   ├── app.ts
+│   │   │   │   ├── cognito.ts
 │   │   │   │   ├── http.ts
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── lambda.ts
-│   │   │   │   └── secrets.ts
+│   │   │   │   └── users.ts
 │   │   │   ├── package.json
 │   │   │   └── tsconfig.json
 │   │   └── frontend/
@@ -237,15 +246,16 @@ AIDLC Workshop v2/
 	<summary><b><code>inventrix-code/packages/api/src/</code></b></summary>
 	<table>
 	<tr><th>File</th><th>Summary</th></tr>
-	<tr><td><a href="inventrix-code/packages/api/src/app.ts">app.ts</a></td><td>組裝 Express app，掛上 auth、products、orders、analytics 四組 route 與集中的錯誤處理。也負責啟動前的準備：讀取 JWT secret、建立資料庫連線、建立 schema 並 seed。本機 server 與 Lambda 共用這一份 app。</td></tr>
+	<tr><td><a href="inventrix-code/packages/api/src/app.ts">app.ts</a></td><td>組裝 Express app，掛上 auth、products、orders、analytics 四組 route 與集中的錯誤處理。也負責啟動前的準備：讀取 Cognito 設定、建立資料庫連線、建立 schema 並 seed。本機 server 與 Lambda 共用這一份 app。</td></tr>
 	<tr><td><a href="inventrix-code/packages/api/src/lambda.ts">lambda.ts</a></td><td>Lambda 的進入點。第一次被呼叫時完成啟動準備，再把 API Gateway 的事件交給 Express 處理；準備失敗時，下一次呼叫會重新嘗試，不會沿用失敗的狀態。</td></tr>
 	<tr><td><a href="inventrix-code/packages/api/src/index.ts">index.ts</a></td><td>本機開發用的 HTTP server。在 3000 port 提供 API，並從 <code>public/images</code> 直接提供商品圖片，讓 Vite 的 proxy 可以轉送 <code>/api</code> 與 <code>/images</code>。</td></tr>
 	<tr><td><a href="inventrix-code/packages/api/src/db/dataApi.ts">db/dataApi.ts</a></td><td>透過 RDS Data API 存取 Aurora 的資料庫實作。把位置參數轉成 Data API 的具名參數、支援 transaction，並在 Aurora 自動暫停後的恢復期間重試請求。</td></tr>
 	<tr><td><a href="inventrix-code/packages/api/src/db/pglite.ts">db/pglite.ts</a></td><td>本機開發用的資料庫實作，以 PGlite 在 process 內執行 PostgreSQL，資料存在 <code>.pglite/</code>。時間欄位維持原始字串格式，和 Data API 的回傳一致。</td></tr>
-	<tr><td><a href="inventrix-code/packages/api/src/db/schema.ts">db/schema.ts</a></td><td>定義 users、products、orders、order_items 四張表，並在資料庫是空的時候 seed 兩個示範帳號與 24 項商品。以 advisory lock 避免多個 Lambda 同時建立 schema 或重複 seed。</td></tr>
+	<tr><td><a href="inventrix-code/packages/api/src/db/schema.ts">db/schema.ts</a></td><td>定義 users、products、orders、order_items 四張表，並在商品表是空的時候 seed 24 項商品。帳號不 seed，users 資料列在第一次登入時建立。以 advisory lock 避免多個 Lambda 同時建立 schema 或重複 seed。</td></tr>
 	<tr><td><a href="inventrix-code/packages/api/src/routes/orders.ts">routes/orders.ts</a></td><td>訂單的查詢、建立與狀態更新。建立訂單時鎖住商品列、檢查並扣減庫存、計算 10% GST，全部在同一個 transaction 內完成；庫存不足時整筆 rollback 並回傳 400。</td></tr>
 	<tr><td><a href="inventrix-code/packages/api/src/services/imageGenerator.ts">services/imageGenerator.ts</a></td><td>呼叫 Bedrock 生成商品圖片。設定了 <code>IMAGES_BUCKET</code> 時寫進 S3 的 <code>images/</code>，否則寫到本機 <code>public/images</code>；回傳的路徑格式都是 <code>/images/檔名.png</code>。</td></tr>
-	<tr><td><a href="inventrix-code/packages/api/src/secrets.ts">secrets.ts</a></td><td>決定 JWT 簽章用的 secret。依序使用 Secrets Manager、環境變數 <code>JWT_SECRET</code>，本機都沒有時產生隨機值；在 Lambda 內缺少 secret ARN 就直接報錯。</td></tr>
+	<tr><td><a href="inventrix-code/packages/api/src/cognito.ts">cognito.ts</a></td><td>串接 Cognito。註冊呼叫 <code>SignUp</code>，登入呼叫 <code>InitiateAuth</code> 取得 ID token，驗證 token 時用 <code>aws-jwt-verify</code> 檢查簽章、issuer 與 app client。token 的 <code>cognito:groups</code> 含 <code>admin</code> 時角色為管理員。</td></tr>
+	<tr><td><a href="inventrix-code/packages/api/src/users.ts">users.ts</a></td><td>把 Cognito 帳號對應到 users 表的整數 id。以 Cognito <code>sub</code> 為鍵，email、名稱與角色跟著 token 更新，訂單仍以整數 <code>user_id</code> 關聯。</td></tr>
 	</table>
 </details>
 
@@ -254,7 +264,9 @@ AIDLC Workshop v2/
 	<table>
 	<tr><th>File</th><th>Summary</th></tr>
 	<tr><td><a href="infra/bin/infra.ts">bin/infra.ts</a></td><td>CDK app 的進入點，宣告兩個 stack：只用來比對的 <code>workshop-stack</code>，以及 Inventrix 的 <code>inventrix</code>，兩者都固定部署在 us-east-1。</td></tr>
-	<tr><td><a href="infra/lib/inventrix-stack.ts">lib/inventrix-stack.ts</a></td><td>Inventrix 的完整雲端架構：isolated VPC 與 Aurora Serverless v2、兩個 S3 bucket、Lambda 與 HTTP API、CloudFront 與 WAF，以及前端和 seed 圖片的上傳。Aurora 刪除時留 snapshot，圖片 bucket 與 secret 都保留。</td></tr>
+	<tr><td><a href="infra/lib/inventrix-stack.ts">lib/inventrix-stack.ts</a></td><td>Inventrix 的完整雲端架構：isolated VPC 與 Aurora Serverless v2、兩個 S3 bucket、Cognito user pool、Lambda 與 HTTP API、CloudFront 與 WAF，以及前端和 seed 圖片的上傳。Aurora 刪除時留 snapshot，圖片 bucket、user pool 與 secret 都保留。</td></tr>
+	<tr><td><a href="infra/lambda/pre-sign-up/index.mjs">lambda/pre-sign-up/index.mjs</a></td><td>Cognito 的 pre sign-up trigger。自行註冊的帳號直接確認並標記 email 已驗證，所以註冊後不需要收驗證信就能登入。</td></tr>
+	<tr><td><a href="infra/lambda/admin-user/index.mjs">lambda/admin-user/index.mjs</a></td><td>部署時建立管理員的 custom resource。從 Secrets Manager 讀取帳號密碼，在 Cognito 建立使用者、設定永久密碼並加進 <code>admin</code> group。</td></tr>
 	<tr><td><a href="infra/lib/workshop-stack.ts">lib/workshop-stack.ts</a></td><td>以 <code>CfnInclude</code> 載入工作坊平台的線上 template，保留所有 logical ID。synth 時把佔位字串換回真正的測試密碼，讓合成結果和線上完全一致。</td></tr>
 	<tr><td><a href="infra/scripts/export-live-template.ts">scripts/export-live-template.ts</a></td><td>從線上 <code>workshop-stack</code> 匯出原始 template，把寫死的測試密碼換成佔位字串後存進 <code>templates/</code>，讓 template 可以安全地放進 repo。</td></tr>
 	</table>
@@ -300,10 +312,14 @@ Build AIDLC Workshop v2 from source and install dependencies:
 **本機開發：**
 
 ```sh
+❯ export COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name inventrix --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)
+❯ export COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks --stack-name inventrix --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" --output text)
 ❯ pnpm -C inventrix-code dev
 ```
 
-前端跑在 `http://localhost:5173`，API 跑在 3000 port，Vite 會把 `/api` 與 `/images` 轉給 API。資料存在 `inventrix-code/packages/api/.pglite/`，第一次啟動時自動建立 schema 並 seed 商品與示範帳號。沒有設定 `JWT_SECRET` 時，API 會用隨機產生的 secret，重新啟動後要重新登入。
+前端跑在 `http://localhost:5173`，API 跑在 3000 port，Vite 會把 `/api` 與 `/images` 轉給 API。資料存在 `inventrix-code/packages/api/.pglite/`，第一次啟動時自動建立 schema 並 seed 商品。
+
+本機的註冊與登入也走已部署的 Cognito user pool，所以要先部署過 `inventrix` stack。API 只需要上面兩個環境變數；`SignUp` 與 `InitiateAuth` 是 Cognito 的公開 API，本機不需要 AWS 憑證。如果 `.pglite/` 是加入 Cognito 之前建立的，請先刪掉它，讓 API 重新建立 schema。
 
 **部署到 AWS：**
 
@@ -316,6 +332,14 @@ Build AIDLC Workshop v2 from source and install dependencies:
 ```
 
 `cdk bootstrap` 只需要在帳號第一次部署前執行一次。`pnpm diff` 會列出 `workshop-stack` 與 `inventrix` 的差異，確認後再部署。`deploy:inventrix` 會先 build 前端，再部署 `inventrix` stack，最後輸出 CloudFront 網址。這些指令都假設帳號上有工作坊的 `workshop-stack`，因為 CDK app 合成時會從它的 output 讀取測試密碼。
+
+部署時會在 Cognito 建立管理員 `admin@inventrix.com`，密碼由 Secrets Manager 產生。用下面的指令讀取：
+
+```sh
+❯ aws secretsmanager get-secret-value --secret-id $(aws cloudformation describe-stacks --stack-name inventrix --query "Stacks[0].Outputs[?OutputKey=='AdminSecretArn'].OutputValue" --output text) --query SecretString --output text
+```
+
+一般顧客帳號在網站上自行註冊。
 
 **AI-DLC 工作流程：**
 

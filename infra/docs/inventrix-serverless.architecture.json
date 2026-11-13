@@ -4,8 +4,8 @@
   "language": "zh-Hant",
   "source": {
     "repository": ". (repository root)",
-    "revision": "working tree on top of 23a0815 (AI support chatbot changes uncommitted)",
-    "method": "static reading of infra/lib/inventrix-stack.ts, inventrix-code/packages/api/src and inventrix-code/packages/support-agent/src"
+    "revision": "main 80767f0 merged with feat/cognito-auth (uncommitted)",
+    "method": "static reading of infra/lib/inventrix-stack.ts, inventrix-code/packages/api/src and inventrix-code/packages/support-agent/src; Cognito from infra/lambda/ and inventrix-code/packages/api/src/cognito.ts"
   },
   "scope": {
     "account": "471112531231",
@@ -58,14 +58,15 @@
       "id": "httpapi",
       "type": "AWS::ApiGatewayV2::Api (HTTP)",
       "stage": "$default, throttle rate 50 / burst 100",
-      "source": "infra/lib/inventrix-stack.ts:237, stage :241-246"
+      "source": "infra/lib/inventrix-stack.ts:367, stage :368",
+      "routes": "public: POST /api/auth/login, POST /api/auth/register, GET /api/products, GET /api/products/{id}, ANY /api/cart[/{proxy+}], ANY /api/gomoku[/{proxy+}], POST /api/support/chat; ANY /api/{proxy+} requires the Cognito JWT authorizer"
     },
     {
       "id": "lambda_api",
       "type": "AWS::Lambda::Function",
       "runtime": "nodejs22.x arm64, 1024 MB, 29 s timeout",
       "code": "inventrix-code/packages/api/src/lambda.ts (Express app via @codegenie/serverless-express)",
-      "source": "infra/lib/inventrix-stack.ts:188"
+      "source": "infra/lib/inventrix-stack.ts:314"
     },
     {
       "id": "aurora",
@@ -83,11 +84,11 @@
       "source": "infra/lib/inventrix-stack.ts:133"
     },
     {
-      "id": "secret_jwt",
-      "type": "AWS::SecretsManager::Secret",
-      "role": "JWT signing secret",
+      "id": "cognito",
+      "type": "AWS::Cognito::UserPool",
+      "config": "Lite plan, email as username (case-insensitive), self sign-up, password min 8 with no complexity rules, no account recovery; app client WebClient with USER_PASSWORD_AUTH, no secret, ID token 1 day; group admin",
       "deletion_policy": "Retain",
-      "source": "infra/lib/inventrix-stack.ts:171"
+      "source": "infra/lib/inventrix-stack.ts:222, :241"
     },
     {
       "id": "bedrock",
@@ -156,6 +157,28 @@
       "type": "AWS::IAM::Role",
       "shown": false,
       "supporting": true
+    },
+    {
+      "id": "pre_sign_up",
+      "type": "AWS::Lambda::Function",
+      "role": "Cognito pre sign-up trigger that auto-confirms self sign-ups",
+      "shown": false,
+      "source": "infra/lib/inventrix-stack.ts:210; infra/lambda/pre-sign-up/index.mjs"
+    },
+    {
+      "id": "admin_secret",
+      "type": "AWS::SecretsManager::Secret",
+      "role": "admin username and generated password",
+      "deletion_policy": "Retain",
+      "shown": false,
+      "source": "infra/lib/inventrix-stack.ts:255"
+    },
+    {
+      "id": "admin_user",
+      "type": "AWS::CloudFormation::CustomResource",
+      "role": "deploy-time creation of the admin Cognito user in group admin",
+      "shown": false,
+      "source": "infra/lib/inventrix-stack.ts:290; infra/lambda/admin-user/index.mjs"
     }
   ],
   "externals": [
@@ -200,7 +223,7 @@
       "to": "lambda_api",
       "kind": "proxy integration",
       "confidence": "confirmed",
-      "evidence": "inventrix-stack.ts:238 defaultIntegration HttpLambdaIntegration"
+      "evidence": "infra/lib/inventrix-stack.ts:393, :396 addRoutes with HttpLambdaIntegration"
     },
     {
       "from": "lambda_api",
@@ -217,13 +240,6 @@
       "label": "經 Data API 讀取",
       "confidence": "confirmed",
       "evidence": "api/src/db/index.ts:17 DB_SECRET_ARN; api/src/db/dataApi.ts:75-78, :94, :100-102 secretArn on ExecuteStatement/Begin/Commit; inventrix-stack.ts:222 grantDataApiAccess grants secret read to the Lambda"
-    },
-    {
-      "from": "lambda_api",
-      "to": "secret_jwt",
-      "kind": "GetSecretValue at cold start",
-      "confidence": "confirmed",
-      "evidence": "api/src/secrets.ts:12 GetSecretValueCommand(JWT_SECRET_ARN); inventrix-stack.ts:223 grantRead"
     },
     {
       "from": "lambda_api",
@@ -263,13 +279,29 @@
       "label": "工具直連 execute-api",
       "confidence": "confirmed",
       "evidence": "support-agent/src/inventrixApi.ts:40, :46 fetch(INVENTRIX_API_URL...); inventrix-stack.ts:285 INVENTRIX_API_URL = httpApi.apiEndpoint"
+    },
+    {
+      "from": "httpapi",
+      "to": "cognito",
+      "kind": "JWT authorizer validates the ID token (issuer = user pool, audience = app client) on ANY /api/{proxy+}",
+      "label": "JWT 驗證",
+      "confidence": "confirmed",
+      "evidence": "infra/lib/inventrix-stack.ts:396-402 HttpUserPoolAuthorizer(userPool, userPoolClients: [WebClient])"
+    },
+    {
+      "from": "lambda_api",
+      "to": "cognito",
+      "kind": "SignUp and InitiateAuth (USER_PASSWORD_AUTH); ID token verification against the pool JWKS",
+      "label": "註冊／登入",
+      "confidence": "confirmed",
+      "evidence": "api/src/cognito.ts:65 SignUpCommand, :77 InitiateAuthCommand, :26 CognitoJwtVerifier; infra/lib/inventrix-stack.ts:340 COGNITO_USER_POOL_ID"
     }
   ],
   "assumptions": [
     "The agent's tools target the execute-api endpoint rather than CloudFront, because pointing them at the Distribution would create a CloudFormation dependency cycle."
   ],
   "limitations": [
-    "The execute-api endpoint is publicly reachable and bypasses WAF; the support agent's tool calls also bypass WAF this way.",
+    "The execute-api endpoint is publicly reachable and bypasses WAF; the support agent's tool calls also bypass WAF this way. Routes outside the public list still require a Cognito token.",
     "The us. inference profile can route Claude Haiku 4.5 inference to us-east-2 or us-west-2, although every deployed resource stays in us-east-1.",
     "Aurora auto-pauses at 0 ACU; the first request after a pause waits for resume (Data API retries up to 25 s).",
     "Single Aurora writer, no reader (not shown in connectivity preset).",
