@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import LaunchOverlay from "../components/LaunchOverlay";
 import PageHeading from "../components/PageHeading";
 import { PENALTY_MULTIPLIER, useCart } from "../context/CartContext";
 import { celebrate } from "../fx/celebrate";
 import { gsap, useGSAP } from "../fx/gsap";
+import { celebrateOrder } from "../fx/orderFx/celebrateOrder";
+import { readDevOverride } from "../fx/orderFx/devOverride";
+import { pickTheme } from "../fx/orderFx/pickTheme";
+import type { OrderThemeId } from "../fx/orderFx/themes";
+import { getTier, TIER_DURATION_MS, type OrderTier } from "../fx/orderFx/tiers";
 import { apiFetch, toApiError } from "../lib/api";
 import { formatPrice } from "../lib/format";
 import type { GomokuGame, Product } from "../lib/types";
@@ -25,19 +31,26 @@ const TAUNTS = [
   "黃仁之勳不可無",
 ] as const;
 
+interface ClaimResult {
+  added: { product_id: number; quantity: number }[];
+  penalty: boolean;
+}
+
+interface CartFx {
+  label: string;
+  total: number;
+  theme: OrderThemeId;
+  tier: OrderTier;
+  imageUrl: string | null;
+}
+
 interface HoverTip {
   text: string;
   x: number;
   y: number;
 }
 
-function TauntDialog({
-  text,
-  onClose,
-}: {
-  text: string;
-  onClose: () => void;
-}) {
+function TauntDialog({ text, onClose }: { text: string; onClose: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   useGSAP(
     () => {
@@ -90,6 +103,16 @@ export default function Gomoku() {
   const [lastMove, setLastMove] = useState<[number, number] | null>(null);
   const [busy, setBusy] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [cartFx, setCartFx] = useState<CartFx | null>(null);
+
+  useEffect(() => {
+    if (cartFx === null) return;
+    const timer = window.setTimeout(
+      () => setCartFx(null),
+      TIER_DURATION_MS[cartFx.tier],
+    );
+    return () => window.clearTimeout(timer);
+  }, [cartFx]);
   const [taunt, setTaunt] = useState<string | null>(null);
   const [hover, setHover] = useState<HoverTip | null>(null);
 
@@ -110,7 +133,9 @@ export default function Gomoku() {
     setLastMove(null);
     setTaunt(null);
     try {
-      setGame(await apiFetch<GomokuGame>("/api/gomoku/games", { method: "POST" }));
+      setGame(
+        await apiFetch<GomokuGame>("/api/gomoku/games", { method: "POST" }),
+      );
     } catch (err: unknown) {
       toast.error("Could not start a game", toApiError(err).message);
     }
@@ -170,14 +195,51 @@ export default function Gomoku() {
     }
   };
 
+  // `added[].quantity` is the cart line's new total, so count this claim from the board instead.
+  const showCartFx = ({ added, penalty }: ClaimResult) => {
+    const addedIds = new Set(added.map((a) => a.product_id));
+    const lines = chosen
+      .filter(({ product }) => addedIds.has(product.id))
+      .map(({ product, quantity }) => ({
+        product,
+        quantity: Math.min(quantity, product.stock),
+      }));
+    if (lines.length === 0) return;
+    const multiplier = penalty ? PENALTY_MULTIPLIER : 1;
+    const total = lines.reduce(
+      (sum, l) => sum + l.product.price * multiplier * l.quantity,
+      0,
+    );
+    const count = lines.reduce((sum, l) => sum + l.quantity, 0);
+    const override = readDevOverride(window.location.search);
+    const theme = override.theme ?? pickTheme();
+    const tier = override.tier ?? getTier(total);
+    celebrateOrder(theme, tier);
+    setCartFx({
+      label: `${count} ${count === 1 ? "prize" : "prizes"}`,
+      total,
+      theme,
+      tier,
+      imageUrl:
+        lines.find((l) => l.product.image_url)?.product.image_url ?? null,
+    });
+  };
+
   const claim = async () => {
     if (!game) return;
     setClaiming(true);
     try {
-      await apiFetch(`/api/gomoku/games/${game.id}/claim`, { method: "POST" });
+      const result = await apiFetch<ClaimResult>(
+        `/api/gomoku/games/${game.id}/claim`,
+        { method: "POST" },
+      );
       setGame({ ...game, claimed: true });
+      showCartFx(result);
       await refreshCart();
-      toast.success("Added to cart", "Your prizes are waiting in the cargo bay.");
+      toast.success(
+        "Added to cart",
+        "Your prizes are waiting in the cargo bay.",
+      );
     } catch (err: unknown) {
       toast.error("Could not add to cart", toApiError(err).message);
     } finally {
@@ -237,6 +299,13 @@ export default function Gomoku() {
 
   return (
     <div className="flex flex-col gap-8">
+      {cartFx && (
+        <LaunchOverlay
+          occasion="cart"
+          {...cartFx}
+          onDismiss={() => setCartFx(null)}
+        />
+      )}
       <PageHeading
         kicker="Arcade deck"
         title="GOMOKU"
@@ -328,7 +397,9 @@ export default function Gomoku() {
         >
           <div
             className="grid gap-1"
-            style={{ gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_PX}px)` }}
+            style={{
+              gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_PX}px)`,
+            }}
           >
             {game.board.map((row, r) =>
               row.map((cell, c) => {

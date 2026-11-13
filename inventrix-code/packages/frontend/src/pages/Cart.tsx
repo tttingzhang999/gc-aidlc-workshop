@@ -4,7 +4,11 @@ import LaunchOverlay from "../components/LaunchOverlay";
 import PageHeading from "../components/PageHeading";
 import { useAuth } from "../context/AuthContext";
 import { PENALTY_MULTIPLIER, useCart } from "../context/CartContext";
-import { celebrate } from "../fx/celebrate";
+import { celebrateOrder } from "../fx/orderFx/celebrateOrder";
+import { readDevOverride } from "../fx/orderFx/devOverride";
+import { pickTheme } from "../fx/orderFx/pickTheme";
+import type { OrderThemeId } from "../fx/orderFx/themes";
+import { getTier, TIER_DURATION_MS, type OrderTier } from "../fx/orderFx/tiers";
 import { shake } from "../fx/shake";
 import { apiFetch, toApiError } from "../lib/api";
 import { formatPrice } from "../lib/format";
@@ -17,7 +21,14 @@ import LinkButton from "../ui/LinkButton";
 import { useToast } from "../ui/Toast";
 
 const GST_RATE = 0.1;
-const REDIRECT_AFTER_LAUNCH_MS = 1800;
+
+interface Launch {
+  orderId: number;
+  total: number;
+  theme: OrderThemeId;
+  tier: OrderTier;
+  imageUrl: string | null;
+}
 
 export default function Cart() {
   const { items, removeItem, refresh } = useCart();
@@ -25,17 +36,17 @@ export default function Cart() {
   const navigate = useNavigate();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [launchedId, setLaunchedId] = useState<number | null>(null);
+  const [launch, setLaunch] = useState<Launch | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (launchedId === null) return;
+    if (launch === null) return;
     const timer = window.setTimeout(
       () => navigate("/orders"),
-      REDIRECT_AFTER_LAUNCH_MS,
+      TIER_DURATION_MS[launch.tier],
     );
     return () => window.clearTimeout(timer);
-  }, [launchedId, navigate]);
+  }, [launch, navigate]);
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const gst = subtotal * GST_RATE;
@@ -52,9 +63,18 @@ export default function Cart() {
       const order = await apiFetch<CreatedOrder>("/api/orders", {
         method: "POST",
       });
-      celebrate();
+      const override = readDevOverride(window.location.search);
+      const theme = override.theme ?? pickTheme();
+      const tier = override.tier ?? getTier(order.total);
+      celebrateOrder(theme, tier);
+      setLaunch({
+        orderId: order.id,
+        total: order.total,
+        theme,
+        tier,
+        imageUrl: items.find((i) => i.image_url)?.image_url ?? null,
+      });
       await refresh();
-      setLaunchedId(order.id);
     } catch (err: unknown) {
       shake(panelRef.current);
       toast.error("Checkout failed", toApiError(err).message);
@@ -72,15 +92,29 @@ export default function Cart() {
 
   return (
     <div className="flex flex-col gap-10">
-      {launchedId !== null && <LaunchOverlay orderId={launchedId} />}
+      {launch !== null && (
+        <LaunchOverlay
+          occasion="order"
+          label={`Order #${launch.orderId}`}
+          total={launch.total}
+          theme={launch.theme}
+          tier={launch.tier}
+          imageUrl={launch.imageUrl}
+        />
+      )}
       <PageHeading kicker="Cargo bay" title="YOUR CART" />
 
-      {items.length === 0 && launchedId === null ? (
+      {items.length === 0 && launch === null ? (
         <EmptyState
           title="CART IS EMPTY"
           message="Win a game of Gomoku to claim the products under your stones. Lose and you can still claim them, at 10x the price."
           action={
-            <LinkButton to="/gomoku" variant="primary" size="lg" testId="cart-go-play">
+            <LinkButton
+              to="/gomoku"
+              variant="primary"
+              size="lg"
+              testId="cart-go-play"
+            >
               Play Gomoku →
             </LinkButton>
           }
@@ -124,7 +158,9 @@ export default function Cart() {
                   <Button
                     size="sm"
                     variant="danger"
-                    onClick={() => void handleRemove(item.product_id, item.penalty)}
+                    onClick={() =>
+                      void handleRemove(item.product_id, item.penalty)
+                    }
                     aria-label={`Remove ${item.name}`}
                     disabled={busy}
                   >
@@ -146,7 +182,9 @@ export default function Cart() {
             </div>
             <div className="flex justify-between border-t border-white/10 pt-4 font-display text-2xl font-black">
               <span>Total</span>
-              <span className="text-gradient">{formatPrice(subtotal + gst)}</span>
+              <span className="text-gradient">
+                {formatPrice(subtotal + gst)}
+              </span>
             </div>
             <Button
               size="lg"
