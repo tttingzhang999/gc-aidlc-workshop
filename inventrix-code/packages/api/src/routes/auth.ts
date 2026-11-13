@@ -1,16 +1,58 @@
-import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import { getDb } from '../db/index.js';
+import { Router, type Response } from 'express';
+import { signIn, signUp, verifyIdToken } from '../cognito.js';
 import { asyncRoute } from '../http.js';
-import { generateToken } from '../middleware/auth.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
+import { type AppUser, syncUser } from '../users.js';
 
-interface UserRow {
-  id: number;
-  email: string;
-  password: string;
-  name: string;
-  role: string;
+interface AuthError {
+  status: number;
+  error: string;
+}
+
+const COGNITO_ERRORS: Readonly<Record<string, AuthError>> = {
+  UsernameExistsException: { status: 400, error: 'Email already registered' },
+  InvalidPasswordException: {
+    status: 400,
+    error: 'Password must be at least 8 characters',
+  },
+  NotAuthorizedException: { status: 401, error: 'Invalid credentials' },
+  UserNotFoundException: { status: 401, error: 'Invalid credentials' },
+  UserNotConfirmedException: { status: 401, error: 'Invalid credentials' },
+  TooManyRequestsException: {
+    status: 429,
+    error: 'Too many requests, please try again later',
+  },
+  LimitExceededException: {
+    status: 429,
+    error: 'Too many requests, please try again later',
+  },
+};
+
+function toAuthError(error: unknown): AuthError | undefined {
+  if (!(error instanceof Error)) return undefined;
+  if (error.name === 'InvalidParameterException') {
+    return { status: 400, error: error.message };
+  }
+  return COGNITO_ERRORS[error.name];
+}
+
+const nonEmpty = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim() !== '';
+
+async function respondWithSession(
+  res: Response,
+  status: number,
+  authenticate: () => Promise<string>,
+): Promise<void> {
+  try {
+    const token = await authenticate();
+    const user: AppUser = await syncUser(await verifyIdToken(token));
+    res.status(status).json({ token, user });
+  } catch (error) {
+    const authError = toAuthError(error);
+    if (!authError) throw error;
+    res.status(authError.status).json({ error: authError.error });
+  }
 }
 
 const router = Router();
@@ -19,33 +61,11 @@ router.post(
   '/login',
   authRateLimit,
   asyncRoute(async (req, res) => {
-    const { email, password } = req.body;
-
-    const db = await getDb();
-    const [user] = await db.query<UserRow>(
-      'SELECT * FROM users WHERE email = $1::text',
-      [email],
-    );
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    const { email, password } = req.body ?? {};
+    if (!nonEmpty(email) || !nonEmpty(password)) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
-
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    });
+    await respondWithSession(res, 200, () => signIn(email.trim(), password));
   }),
 );
 
@@ -53,28 +73,15 @@ router.post(
   '/register',
   authRateLimit,
   asyncRoute(async (req, res) => {
-    const { email, password, name } = req.body;
-
-    const db = await getDb();
-    const [existing] = await db.query(
-      'SELECT id FROM users WHERE email = $1::text',
-      [email],
-    );
-    if (existing) {
-      return res.status(400).json({ error: 'Email already registered' });
+    const { email, password, name } = req.body ?? {};
+    if (!nonEmpty(email) || !nonEmpty(password) || !nonEmpty(name)) {
+      return res
+        .status(400)
+        .json({ error: 'Email, password and name are required' });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const [created] = await db.query<{ id: number }>(
-      "INSERT INTO users (email, password, name, role) VALUES ($1::text, $2::text, $3::text, 'customer') RETURNING id",
-      [email, hashedPassword, name],
-    );
-
-    const token = generateToken({ id: created.id, email, role: 'customer' });
-
-    res.status(201).json({
-      token,
-      user: { id: created.id, email, name, role: 'customer' },
+    await respondWithSession(res, 201, async () => {
+      await signUp(email.trim(), password, name.trim());
+      return signIn(email.trim(), password);
     });
   }),
 );

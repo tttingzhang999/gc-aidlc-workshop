@@ -70,8 +70,10 @@ chmod +x deploy.sh
 
 ## Default Users
 
-- **Admin**: admin@inventrix.com / admin123
-- **Customer**: customer@inventrix.com / customer123
+Accounts live in the Cognito user pool of the `inventrix` CDK stack (`infra/`).
+
+- **Admin**: `admin@inventrix.com`. Its password is generated in Secrets Manager; the stack output `AdminSecretArn` names the secret.
+- **Customers**: register on the site.
 
 ## Project Structure
 

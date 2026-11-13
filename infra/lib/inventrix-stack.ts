@@ -2,13 +2,20 @@ import * as path from 'node:path';
 import {
   AssetHashType,
   CfnOutput,
+  CustomResource,
   DockerImage,
   Duration,
   RemovalPolicy,
   Stack,
   type StackProps,
 } from 'aws-cdk-lib';
-import { HttpApi, HttpStage } from 'aws-cdk-lib/aws-apigatewayv2';
+import {
+  HttpApi,
+  HttpMethod,
+  HttpStage,
+  type HttpRouteIntegration,
+} from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import {
   AgentCoreRuntime,
@@ -32,9 +39,22 @@ import {
   ViewerProtocolPolicy,
 } from 'aws-cdk-lib/aws-cloudfront';
 import { HttpOrigin, S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
+import {
+  AccountRecovery,
+  FeaturePlan,
+  UserPool,
+  type UserPoolClient,
+  UserPoolGroup,
+  UserPoolOperation,
+} from 'aws-cdk-lib/aws-cognito';
 import { SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
+import {
+  Architecture,
+  Code,
+  Function as LambdaFunction,
+  Runtime,
+} from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import {
@@ -52,6 +72,7 @@ import {
 } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Provider } from 'aws-cdk-lib/custom-resources';
 import { CfnWebACL } from 'aws-cdk-lib/aws-wafv2';
 import type { Construct } from 'constructs';
 import { buildSync } from 'esbuild';
@@ -61,7 +82,11 @@ const API_ROOT = path.join(APP_ROOT, 'packages', 'api');
 const FRONTEND_DIST = path.join(APP_ROOT, 'packages', 'frontend', 'dist');
 const SUPPORT_AGENT_ROOT = path.join(APP_ROOT, 'packages', 'support-agent');
 
+const AUTH_HANDLERS_ROOT = path.join(import.meta.dirname, '..', 'lambda');
+
 const DATABASE_NAME = 'inventrix';
+const ADMIN_GROUP = 'admin';
+const ADMIN_EMAIL = 'admin@inventrix.com';
 const IMAGE_MODEL_ID = 'amazon.nova-canvas-v1:0';
 
 // The us. cross-region inference profile routes requests to these regions.
@@ -85,13 +110,15 @@ export class InventrixStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
 
-    const { cluster, imagesBucket, jwtSecret } = this.createDataLayer();
+    const { cluster, imagesBucket } = this.createDataLayer();
+    const { userPool, userPoolClient, adminSecret } = this.createAuth();
     const apiFunction = this.createApiFunction(
       cluster,
       imagesBucket,
-      jwtSecret,
+      userPool,
+      userPoolClient,
     );
-    const httpApi = this.createHttpApi(apiFunction);
+    const httpApi = this.createHttpApi(apiFunction, userPool, userPoolClient);
     const supportAgent = this.createSupportAgent(httpApi);
     apiFunction.addEnvironment(
       'SUPPORT_AGENT_RUNTIME_ARN',
@@ -108,6 +135,11 @@ export class InventrixStack extends Stack {
     });
     new CfnOutput(this, 'ApiFunctionName', { value: apiFunction.functionName });
     new CfnOutput(this, 'ClusterArn', { value: cluster.clusterArn });
+    new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
+    new CfnOutput(this, 'UserPoolClientId', {
+      value: userPoolClient.userPoolClientId,
+    });
+    new CfnOutput(this, 'AdminSecretArn', { value: adminSecret.secretArn });
     new CfnOutput(this, 'SupportAgentRuntimeArn', {
       value: supportAgent.agentRuntimeArn,
     });
@@ -116,7 +148,6 @@ export class InventrixStack extends Stack {
   private createDataLayer(): {
     cluster: DatabaseCluster;
     imagesBucket: Bucket;
-    jwtSecret: Secret;
   } {
     const vpc = new Vpc(this, 'Vpc', {
       maxAzs: 2,
@@ -168,19 +199,114 @@ export class InventrixStack extends Stack {
       retainOnDelete: true,
     });
 
-    const jwtSecret = new Secret(this, 'JwtSecret', {
-      description: 'Inventrix API JWT signing secret',
-      generateSecretString: { passwordLength: 64, excludePunctuation: true },
+    return { cluster, imagesBucket };
+  }
+
+  private createAuth(): {
+    userPool: UserPool;
+    userPoolClient: UserPoolClient;
+    adminSecret: Secret;
+  } {
+    const preSignUp = new LambdaFunction(this, 'PreSignUpFunction', {
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.ARM_64,
+      handler: 'index.handler',
+      code: Code.fromAsset(path.join(AUTH_HANDLERS_ROOT, 'pre-sign-up')),
+      logGroup: new LogGroup(this, 'PreSignUpLogGroup', {
+        retention: RetentionDays.ONE_MONTH,
+      }),
+    });
+
+    // Sign-up only needs email and password: the pre sign-up trigger confirms the account, so
+    // Cognito never sends a verification email.
+    const userPool = new UserPool(this, 'UserPool', {
+      featurePlan: FeaturePlan.LITE,
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      signInCaseSensitive: false,
+      autoVerify: { email: false },
+      standardAttributes: { fullname: { required: false, mutable: true } },
+      passwordPolicy: {
+        minLength: 8,
+        requireLowercase: false,
+        requireUppercase: false,
+        requireDigits: false,
+        requireSymbols: false,
+      },
+      accountRecovery: AccountRecovery.NONE,
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+    userPool.addTrigger(UserPoolOperation.PRE_SIGN_UP, preSignUp);
+
+    const userPoolClient = userPool.addClient('WebClient', {
+      authFlows: { userPassword: true },
+      generateSecret: false,
+      preventUserExistenceErrors: true,
+      idTokenValidity: Duration.days(1),
+      accessTokenValidity: Duration.days(1),
+      refreshTokenValidity: Duration.days(1),
+    });
+
+    const adminGroup = new UserPoolGroup(this, 'AdminGroup', {
+      userPool,
+      groupName: ADMIN_GROUP,
+    });
+
+    const adminSecret = new Secret(this, 'AdminCredentials', {
+      description: 'Inventrix admin sign-in (username and password)',
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ username: ADMIN_EMAIL }),
+        generateStringKey: 'password',
+        passwordLength: 24,
+        excludePunctuation: true,
+      },
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
-    return { cluster, imagesBucket, jwtSecret };
+    const adminUserFunction = new LambdaFunction(this, 'AdminUserFunction', {
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.ARM_64,
+      handler: 'index.handler',
+      timeout: Duration.seconds(30),
+      code: Code.fromAsset(path.join(AUTH_HANDLERS_ROOT, 'admin-user')),
+      logGroup: new LogGroup(this, 'AdminUserLogGroup', {
+        retention: RetentionDays.ONE_MONTH,
+      }),
+    });
+    adminSecret.grantRead(adminUserFunction);
+    adminUserFunction.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          'cognito-idp:AdminAddUserToGroup',
+          'cognito-idp:AdminCreateUser',
+          'cognito-idp:AdminSetUserPassword',
+        ],
+        resources: [userPool.userPoolArn],
+      }),
+    );
+
+    // The handler reads the password itself: CloudFormation does not resolve Secrets Manager
+    // dynamic references inside custom resource properties.
+    const adminUser = new CustomResource(this, 'AdminUser', {
+      serviceToken: new Provider(this, 'AdminUserProvider', {
+        onEventHandler: adminUserFunction,
+      }).serviceToken,
+      properties: {
+        UserPoolId: userPool.userPoolId,
+        SecretArn: adminSecret.secretArn,
+        GroupName: adminGroup.groupName,
+      },
+    });
+    adminUser.node.addDependency(adminGroup);
+
+    return { userPool, userPoolClient, adminSecret };
   }
 
   private createApiFunction(
     cluster: DatabaseCluster,
     imagesBucket: Bucket,
-    jwtSecret: Secret,
+    userPool: UserPool,
+    userPoolClient: UserPoolClient,
   ): NodejsFunction {
     if (!cluster.secret)
       throw new Error('Database cluster has no generated secret');
@@ -202,7 +328,7 @@ export class InventrixStack extends Stack {
           '@aws-sdk/client-bedrock-runtime',
           '@aws-sdk/client-rds-data',
           '@aws-sdk/client-s3',
-          '@aws-sdk/client-secrets-manager',
+          '@aws-sdk/client-cognito-identity-provider',
           '@electric-sql/pglite',
         ],
       },
@@ -211,7 +337,8 @@ export class InventrixStack extends Stack {
         DB_CLUSTER_ARN: cluster.clusterArn,
         DB_SECRET_ARN: cluster.secret.secretArn,
         DB_NAME: DATABASE_NAME,
-        JWT_SECRET_ARN: jwtSecret.secretArn,
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+        COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
         IMAGES_BUCKET: imagesBucket.bucketName,
       },
       logGroup: new LogGroup(this, 'ApiLogGroup', {
@@ -220,7 +347,6 @@ export class InventrixStack extends Stack {
     });
 
     cluster.grantDataApiAccess(fn);
-    jwtSecret.grantRead(fn);
     imagesBucket.grantPut(fn, 'images/*');
     fn.addToRolePolicy(
       new PolicyStatement({
@@ -233,16 +359,47 @@ export class InventrixStack extends Stack {
     return fn;
   }
 
-  private createHttpApi(fn: NodejsFunction): HttpApi {
-    const httpApi = new HttpApi(this, 'HttpApi', {
-      defaultIntegration: new HttpLambdaIntegration('ApiIntegration', fn),
-      createDefaultStage: false,
-    });
+  private createHttpApi(
+    fn: NodejsFunction,
+    userPool: UserPool,
+    userPoolClient: UserPoolClient,
+  ): HttpApi {
+    const httpApi = new HttpApi(this, 'HttpApi', { createDefaultStage: false });
     new HttpStage(this, 'DefaultStage', {
       httpApi,
       stageName: '$default',
       autoDeploy: true,
       throttle: { rateLimit: 50, burstLimit: 100 },
+    });
+
+    const integration: HttpRouteIntegration = new HttpLambdaIntegration(
+      'ApiIntegration',
+      fn,
+    );
+    const publicRoutes: ReadonlyArray<[string, HttpMethod]> = [
+      ['/api/auth/login', HttpMethod.POST],
+      ['/api/auth/register', HttpMethod.POST],
+      ['/api/products', HttpMethod.GET],
+      ['/api/products/{id}', HttpMethod.GET],
+      // Cart and Gomoku also serve guests (X-Guest-Id); the API's identify middleware checks tokens.
+      ['/api/cart', HttpMethod.ANY],
+      ['/api/cart/{proxy+}', HttpMethod.ANY],
+      ['/api/gomoku', HttpMethod.ANY],
+      ['/api/gomoku/{proxy+}', HttpMethod.ANY],
+      // Guests can chat too; the API passes a valid token on to the agent's tools.
+      ['/api/support/chat', HttpMethod.POST],
+    ];
+    for (const [routePath, method] of publicRoutes) {
+      httpApi.addRoutes({ path: routePath, methods: [method], integration });
+    }
+    // Every other /api route needs a valid Cognito ID token from this app client.
+    httpApi.addRoutes({
+      path: '/api/{proxy+}',
+      methods: [HttpMethod.ANY],
+      integration,
+      authorizer: new HttpUserPoolAuthorizer('UserPoolAuthorizer', userPool, {
+        userPoolClients: [userPoolClient],
+      }),
     });
     return httpApi;
   }

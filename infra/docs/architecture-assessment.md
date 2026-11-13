@@ -93,11 +93,12 @@ flowchart LR
   L -- "Data API" --> DB[("Aurora Serverless v2<br/>PostgreSQL")]
   L --> IMG
   L --> BR["Bedrock<br/>Nova Canvas"]
-  L --> SM["Secrets Manager<br/>JWT secret"]
+  APIGW -. "JWT authorizer" .-> COG["Cognito<br/>user pool"]
+  L -- "SignUp / InitiateAuth" --> COG
   AC["AgentCore Runtime<br/>strands_agent<br/>(workshop-stack)"] -. "未來整合" .- L
 ```
 
-<!-- Text fallback: The browser talks only to CloudFront, which has WAF attached. CloudFront's default behavior serves the SPA from a private S3 frontend bucket through Origin Access Control. The /images/* behavior serves product images from a private S3 images bucket. The /api/* behavior forwards to an API Gateway HTTP API, which proxies to one Lambda running the Express app. The Lambda reads and writes Aurora Serverless v2 PostgreSQL through the RDS Data API, writes generated images to the images bucket, calls Bedrock Nova Canvas, and reads the JWT secret from Secrets Manager. The AgentCore Runtime stays in workshop-stack and can be integrated later. -->
+<!-- Text fallback: The browser talks only to CloudFront, which has WAF attached. CloudFront's default behavior serves the SPA from a private S3 frontend bucket through Origin Access Control. The /images/* behavior serves product images from a private S3 images bucket. The /api/* behavior forwards to an API Gateway HTTP API, which proxies to one Lambda running the Express app. The Lambda reads and writes Aurora Serverless v2 PostgreSQL through the RDS Data API, writes generated images to the images bucket, calls Bedrock Nova Canvas, and calls the Cognito user pool for sign-up and sign-in. API Gateway validates Cognito ID tokens with a JWT authorizer before protected routes reach the Lambda. The AgentCore Runtime stays in workshop-stack and can be integrated later. -->
 
 前端只透過同一個 CloudFront 網域呼叫 `/api` 與 `/images`。前端程式碼不需要改 API base URL，也不需要 CORS，這符合「前端只用相對路徑」的專案規則。
 
@@ -124,7 +125,7 @@ API Gateway 選 **HTTP API**：比 REST API 便宜約 70%，延遲較低。REST 
 | 現況                                   | 在 Lambda 上的問題                         | 處理方式                                                        |
 | -------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
 | `express-rate-limit` 存在記憶體        | 每個 Lambda 執行環境各算各的，限流形同虛設 | 改用 API Gateway throttling，加上 WAF rate-based rule           |
-| `JWT_SECRET` 有寫死的 fallback         | 環境變數漏設時會用公開的預設值簽 token     | 從 Secrets Manager 讀取，讀不到就回 500，不 fallback            |
+| `JWT_SECRET` 有寫死的 fallback         | 環境變數漏設時會用公開的預設值簽 token     | 改由 Cognito 簽發 token，見 3.6                                 |
 | 圖片寫入 `process.cwd()/public/images` | Lambda 只有 `/tmp` 可寫，且不會保留        | 寫進 S3 images bucket，回傳的 URL 格式維持 `/images/<name>.png` |
 | `better-sqlite3` 是 native module      | Lambda 打包要針對 Amazon Linux 編譯        | 改用 Aurora 後直接移除                                          |
 | Nova Canvas 生圖約需數秒到十幾秒       | HTTP API 整合上限 30 秒                    | Lambda timeout 設 29 秒；若常逾時，再改成非同步（S3 + 輪詢）    |
@@ -153,18 +154,29 @@ Aurora cluster 放在 Inventrix 自己的 VPC，只用 isolated subnet，不要�
 - `order_items.product_id` 不加 foreign key。原本 SQLite 沒有啟用 foreign key，後台可以刪除已有訂單的商品；PostgreSQL 若加上 foreign key，這個操作會變成 500。
 - 下單改在同一個 transaction 內完成，並以 `SELECT ... FOR UPDATE` 鎖住商品列：庫存不足時整筆 rollback，同一商品在一張訂單出現兩次也不會超賣。
 - Schema 建立與 seed 在 Lambda 冷啟動時執行，以 `pg_advisory_xact_lock` 避免多個執行環境同時 seed。
-- `bcrypt`（native module）改為相容的 `bcryptjs`，既有的密碼 hash 照樣可用。
+- 密碼改由 Cognito 管理，users 表不再存密碼，`bcrypt` 一併移除。
 
 ### 3.5 AgentCore Runtime：續用
 
 `strands_agent` Runtime 與 `agentcore-context-gateway` 屬於 `workshop-stack`，維持原狀。Inventrix 目前沒有呼叫它們。若之後要整合（例如商品描述生成、庫存問答），由 Inventrix 的 Lambda 以 IAM 呼叫 `InvokeAgentRuntime`，在 Inventrix 自己的 stack 裡授權，不修改 `workshop-stack`。
 
+### 3.6 驗證：Cognito
+
+需求是只要能以 email 和密碼註冊、登入，不做 email 驗證或 MFA。
+
+- **前端不改。** Lambda 代理 `/api/auth/register` 與 `/api/auth/login`，分別呼叫 Cognito 的 `SignUp` 與 `InitiateAuth`（`USER_PASSWORD_AUTH`），回傳格式維持 `{ token, user }`，`token` 是 Cognito ID token。前端不需要 user pool ID，也符合「不新增部署時才設定的前端環境變數」的專案規則。
+- **註冊後直接可以登入。** pre sign-up trigger 自動確認帳號並標記 email 已驗證，Cognito 不寄驗證信。密碼政策只要求至少 8 碼。
+- **API Gateway 先驗證。** HTTP API 的 JWT authorizer 以 user pool 為 issuer、app client 為 audience。登入、註冊與 `GET /api/products`、`GET /api/products/{id}` 是公開路由。`/api/cart`、`/api/gomoku` 與 `POST /api/support/chat` 也開放給訪客，由 Lambda 的 `identify` 或 `optionalAuthenticate` middleware 依 token 判斷是否為登入使用者。其他 `/api/*` 都需要 token。Lambda 內以 `aws-jwt-verify` 再驗證一次：這是第二道防線，本機開發沒有 API Gateway 時也靠它。
+- **角色。** 管理員是 Cognito `admin` group 的成員，Lambda 從 token 的 `cognito:groups` 判斷。管理員帳號由部署時的 custom resource 建立，密碼由 Secrets Manager 產生，不再使用寫在 repo 裡的示範密碼。
+- **users 表。** 訂單以整數 `user_id` 關聯 users，所以每個 Cognito 帳號仍有一筆 users 資料列，以 `cognito_sub` 對應，第一次登入時建立。訂單與後台 API 的回傳格式不變。
+- **取捨。** ID token 效期 1 天，不做 refresh，過期後前端收到 401 會自動登出。被 API Gateway 擋下的請求回傳 `{"message":"Unauthorized"}`，前端只會顯示通用的錯誤訊息。本機開發要連已部署的 user pool。
+
 ## 4. CDK stack 規劃
 
-| Stack            | 內容                                                                                                                                                 | 刪除政策                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `workshop-stack` | `CfnInclude` 既有平台，只做 diff，不部署                                                                                                             | 不適用                                                                    |
-| `inventrix`      | VPC（isolated subnet）、Aurora cluster、images bucket、DB 帳密與 JWT secret、Lambda、HTTP API、frontend bucket、CloudFront、CloudFront Function、WAF | Aurora 為 `SNAPSHOT`；images bucket 與兩個 secret 為 `RETAIN`；其餘可重建 |
+| Stack            | 內容                                                                                                                                                                    | 刪除政策                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `workshop-stack` | `CfnInclude` 既有平台，只做 diff，不部署                                                                                                                                | 不適用                                                                               |
+| `inventrix`      | VPC（isolated subnet）、Aurora cluster、images bucket、DB 帳密、Cognito user pool 與管理員帳密、Lambda、HTTP API、frontend bucket、CloudFront、CloudFront Function、WAF | Aurora 為 `SNAPSHOT`；images bucket、user pool 與兩個 secret 為 `RETAIN`；其餘可重建 |
 
 PoC 先用單一 stack。若把 images bucket 放在另一個 stack，CloudFront OAC 修改 bucket policy 時會造成跨 stack 循環相依，要額外處理。有狀態的資源都設了保留政策，所以刪除 stack 不會刪掉資料。正式環境建議拆成資料 stack 與應用 stack，讓應用 stack 可以放心重建。
 
@@ -185,7 +197,7 @@ PoC 的成本主要取決於 Aurora 是否允許自動暫停。
 
 - **CI/CD**：目前沒有 pipeline。建議 GitHub Actions 以 OIDC 取得 AWS 權限，PR 跑 `cdk diff`，merge 後部署。
 - **監控**：Lambda 錯誤率與 p95 延遲、API Gateway 5xx、Aurora ACU 用量的 CloudWatch alarm。
-- **驗證機制**：JWT 存在 `localStorage`，容易被 XSS 竊取，也沒有撤銷機制。長期可改用 Cognito 或 httpOnly cookie。
+- **驗證機制**：已改用 Cognito，但 ID token 仍存在 `localStorage`，容易被 XSS 竊取，也沒有 refresh 與撤銷機制。正式環境可加上 refresh token，或改用 httpOnly cookie。
 - **自訂網域**：ACM 憑證（必須在 us-east-1）加上 Route 53。
 - **多環境**：以 CDK stage 區分 dev 與 prod，各自一組 stack。
 - **資料遷移**：目前沒有正式資料，seed 即可；若之後有 SQLite 正式資料，需要一次性的匯出匯入腳本。
