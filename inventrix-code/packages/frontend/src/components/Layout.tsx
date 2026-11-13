@@ -50,6 +50,11 @@ function useNavItems(): NavItem[] {
       match: (p) => p.startsWith("/cart"),
       badge: count,
     },
+    {
+      to: "/role",
+      label: "Role",
+      match: (p) => p.startsWith("/role"),
+    },
   ];
   if (user)
     items.push({
