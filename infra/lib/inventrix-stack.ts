@@ -1,6 +1,8 @@
 import * as path from 'node:path';
 import {
+  AssetHashType,
   CfnOutput,
+  DockerImage,
   Duration,
   RemovalPolicy,
   Stack,
@@ -8,6 +10,11 @@ import {
 } from 'aws-cdk-lib';
 import { HttpApi, HttpStage } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import {
+  AgentCoreRuntime,
+  AgentRuntimeArtifact,
+  Runtime as AgentRuntime,
+} from 'aws-cdk-lib/aws-bedrockagentcore';
 import {
   AllowedMethods,
   CacheCookieBehavior,
@@ -47,13 +54,20 @@ import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { CfnWebACL } from 'aws-cdk-lib/aws-wafv2';
 import type { Construct } from 'constructs';
+import { buildSync } from 'esbuild';
 
 const APP_ROOT = path.join(import.meta.dirname, '..', '..', 'inventrix-code');
 const API_ROOT = path.join(APP_ROOT, 'packages', 'api');
 const FRONTEND_DIST = path.join(APP_ROOT, 'packages', 'frontend', 'dist');
+const SUPPORT_AGENT_ROOT = path.join(APP_ROOT, 'packages', 'support-agent');
 
 const DATABASE_NAME = 'inventrix';
 const IMAGE_MODEL_ID = 'amazon.nova-canvas-v1:0';
+
+// The us. cross-region inference profile routes requests to these regions.
+const SUPPORT_MODEL = 'anthropic.claude-haiku-4-5-20251001-v1:0';
+const SUPPORT_MODEL_PROFILE = `us.${SUPPORT_MODEL}`;
+const SUPPORT_MODEL_REGIONS = ['us-east-1', 'us-east-2', 'us-west-2'];
 
 // Rewrites client-side routes (no file extension) to the SPA entry. Only attached to the default
 // behavior, so /api/* error responses reach the browser unchanged.
@@ -78,6 +92,12 @@ export class InventrixStack extends Stack {
       jwtSecret,
     );
     const httpApi = this.createHttpApi(apiFunction);
+    const supportAgent = this.createSupportAgent(httpApi);
+    apiFunction.addEnvironment(
+      'SUPPORT_AGENT_RUNTIME_ARN',
+      supportAgent.agentRuntimeArn,
+    );
+    supportAgent.grantInvokeRuntime(apiFunction);
     const distribution = this.createDistribution(httpApi, imagesBucket);
 
     new CfnOutput(this, 'SiteUrl', {
@@ -88,6 +108,9 @@ export class InventrixStack extends Stack {
     });
     new CfnOutput(this, 'ApiFunctionName', { value: apiFunction.functionName });
     new CfnOutput(this, 'ClusterArn', { value: cluster.clusterArn });
+    new CfnOutput(this, 'SupportAgentRuntimeArn', {
+      value: supportAgent.agentRuntimeArn,
+    });
   }
 
   private createDataLayer(): {
@@ -175,7 +198,13 @@ export class InventrixStack extends Stack {
         format: OutputFormat.CJS,
         target: 'node22',
         sourceMap: true,
-        externalModules: ['@aws-sdk/*', '@electric-sql/pglite'],
+        externalModules: [
+          '@aws-sdk/client-bedrock-runtime',
+          '@aws-sdk/client-rds-data',
+          '@aws-sdk/client-s3',
+          '@aws-sdk/client-secrets-manager',
+          '@electric-sql/pglite',
+        ],
       },
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
@@ -216,6 +245,67 @@ export class InventrixStack extends Stack {
       throttle: { rateLimit: 50, burstLimit: 100 },
     });
     return httpApi;
+  }
+
+  private createSupportAgent(httpApi: HttpApi): AgentRuntime {
+    // Bundled to one CommonJS file so the zip carries no node_modules.
+    const artifact = AgentRuntimeArtifact.fromCodeAsset({
+      path: SUPPORT_AGENT_ROOT,
+      runtime: AgentCoreRuntime.NODE_22,
+      entrypoint: ['index.js'],
+      assetHashType: AssetHashType.OUTPUT,
+      bundling: {
+        image: DockerImage.fromRegistry(
+          'public.ecr.aws/docker/library/node:22',
+        ),
+        local: {
+          tryBundle(outputDir: string): boolean {
+            buildSync({
+              entryPoints: [path.join(SUPPORT_AGENT_ROOT, 'src', 'main.ts')],
+              outfile: path.join(outputDir, 'index.js'),
+              bundle: true,
+              platform: 'node',
+              target: 'node22',
+              format: 'cjs',
+              legalComments: 'none',
+              logLevel: 'warning',
+            });
+            return true;
+          },
+        },
+      },
+    });
+
+    // Tools call the HTTP API directly; the CloudFront domain would create a dependency cycle.
+    const runtime = new AgentRuntime(this, 'SupportAgent', {
+      runtimeName: 'inventrix_support',
+      description: 'Inventrix storefront customer support assistant',
+      agentRuntimeArtifact: artifact,
+      environmentVariables: {
+        INVENTRIX_API_URL: httpApi.apiEndpoint,
+        SUPPORT_MODEL_ID: SUPPORT_MODEL_PROFILE,
+      },
+      lifecycleConfiguration: {
+        idleRuntimeSessionTimeout: Duration.minutes(15),
+      },
+    });
+
+    runtime.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          'bedrock:InvokeModel',
+          'bedrock:InvokeModelWithResponseStream',
+        ],
+        resources: [
+          `arn:${this.partition}:bedrock:${this.region}:${this.account}:inference-profile/${SUPPORT_MODEL_PROFILE}`,
+          ...SUPPORT_MODEL_REGIONS.map(
+            (region) =>
+              `arn:${this.partition}:bedrock:${region}::foundation-model/${SUPPORT_MODEL}`,
+          ),
+        ],
+      }),
+    );
+    return runtime;
   }
 
   private createDistribution(
@@ -343,6 +433,7 @@ export class InventrixStack extends Stack {
         managedRule('AWSManagedRulesKnownBadInputsRuleSet', 1),
         rateLimitRule('AuthRateLimit', 2, '/api/auth/', 20),
         rateLimitRule('ApiRateLimit', 3, '/api/', 2000),
+        rateLimitRule('SupportChatRateLimit', 4, '/api/support/', 100),
       ],
     });
   }

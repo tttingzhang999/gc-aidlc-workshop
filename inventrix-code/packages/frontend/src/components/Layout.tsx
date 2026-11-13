@@ -13,6 +13,7 @@ import Button from "../ui/Button";
 import LinkButton from "../ui/LinkButton";
 import Marquee from "../ui/Marquee";
 import { useToast } from "../ui/Toast";
+import SupportChat from "./support/SupportChat";
 
 interface NavItem {
   to: string;
@@ -302,6 +303,8 @@ export default function Layout() {
       <footer className="border-t border-white/10 bg-void/60 py-5 font-display text-2xl font-black tracking-tighter text-white/20 md:text-4xl">
         <Marquee items={FOOTER_TICKER} />
       </footer>
+
+      <SupportChat />
     </div>
   );
 }

@@ -16,6 +16,17 @@ export const authRateLimit = rateLimit({
   },
 });
 
+export const supportChatRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  skip: skipInLambda,
+  message: {
+    error: 'Too many messages to the assistant, please try again later',
+  },
+});
+
 export const protectedRouteRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,

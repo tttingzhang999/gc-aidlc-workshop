@@ -15,6 +15,7 @@ import ordersRoutes from './routes/orders.js';
 import analyticsRoutes from './routes/analytics.js';
 import gomokuRoutes from './routes/gomoku.js';
 import cartRoutes from './routes/cart.js';
+import supportRoutes from './routes/support.js';
 
 export interface AppOptions {
   staticImagesDir?: string;
@@ -35,6 +36,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/gomoku', gomokuRoutes);
   app.use('/api/cart', cartRoutes);
+  app.use('/api/support', supportRoutes);
 
   app.use(
     (error: unknown, _req: Request, res: Response, next: NextFunction) => {
