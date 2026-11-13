@@ -6,6 +6,9 @@ const SCHEMA_LOCK_ID = 7_310_001;
 const CREATED_AT =
   "created_at TIMESTAMP(0) NOT NULL DEFAULT (now() AT TIME ZONE 'utc')";
 
+const GOMOKU_STATUS_CHECK =
+  "status IN ('playing', 'won', 'lost', 'draw', 'surrendered')";
+
 // order_items.product_id has no foreign key on purpose: the API lets admins delete products that
 // already appear in orders, as it did on SQLite (where foreign keys were never enforced).
 const SCHEMA = [
@@ -48,10 +51,13 @@ const SCHEMA = [
     owner TEXT NOT NULL,
     board TEXT NOT NULL,
     layout TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('playing', 'won', 'lost', 'draw')),
+    status TEXT NOT NULL CHECK (${GOMOKU_STATUS_CHECK}),
     claimed INTEGER NOT NULL DEFAULT 0,
     ${CREATED_AT}
   )`,
+  // CREATE TABLE IF NOT EXISTS leaves an older table's CHECK alone, so replace it to allow 'surrendered'.
+  'ALTER TABLE gomoku_games DROP CONSTRAINT IF EXISTS gomoku_games_status_check',
+  `ALTER TABLE gomoku_games ADD CONSTRAINT gomoku_games_status_check CHECK (${GOMOKU_STATUS_CHECK})`,
   // Like order_items, cart_items.product_id has no foreign key so admins can still delete products;
   // cart queries join on products, so lines for deleted products simply drop out.
   `CREATE TABLE IF NOT EXISTS cart_items (
