@@ -108,3 +108,28 @@ export interface InventoryItem {
   price: number;
   status: InventoryStatus;
 }
+
+export interface CartItem {
+  product_id: number;
+  name: string;
+  /** Unit price as charged (already 10x for penalty items). */
+  price: number;
+  stock: number;
+  image_url: string | null;
+  quantity: number;
+  /** Claimed after losing the Gomoku game. */
+  penalty: boolean;
+}
+export type GomokuCell = "black" | "white" | null;
+export type GomokuStatus = "playing" | "won" | "lost" | "draw";
+/** The game (rules, computer moves, results) lives on the server. */
+export interface GomokuGame {
+  id: number;
+  board: GomokuCell[][];
+  /** Product id shown on each cell, row-major. */
+  layout: number[];
+  status: GomokuStatus;
+  claimed: boolean;
+  winLine?: [number, number][];
+  lastMove?: [number, number];
+}

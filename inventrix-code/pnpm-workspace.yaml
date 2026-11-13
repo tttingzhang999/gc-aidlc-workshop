@@ -4,6 +4,9 @@ packages:
 overrides:
   path-to-regexp: 0.1.13
   qs: 6.15.2
+  # Pinned below versions published within pnpm's minimumReleaseAge window (24h).
+  enhanced-resolve: 5.26.1
+  graceful-fs: 4.2.11
 
 allowBuilds:
   esbuild: true

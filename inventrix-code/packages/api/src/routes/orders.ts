@@ -1,30 +1,24 @@
 import { Router } from 'express';
 import { getDb } from '../db/index.js';
 import { asyncRoute, parseId } from '../http.js';
-import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.js';
+import {
+  authenticate,
+  identify,
+  requireAdmin,
+  AuthRequest,
+} from '../middleware/auth.js';
 import { protectedRouteRateLimit } from '../middleware/rateLimit.js';
+import { unitPrice } from '../services/pricing.js';
 
-interface OrderItemInput {
-  product_id: unknown;
+interface CartLine {
+  product_id: number;
   quantity: number;
-}
-
-interface OrderLine {
-  productId: number;
-  quantity: number;
+  penalty: number;
   price: number;
+  stock: number;
 }
 
-class InsufficientStockError extends Error {
-  constructor(readonly productId: unknown) {
-    super(`Insufficient stock for product ${productId}`);
-  }
-}
-
-const toProductId = (value: unknown): number | null =>
-  typeof value === 'number' && Number.isInteger(value)
-    ? value
-    : parseId(String(value));
+class CheckoutError extends Error {}
 
 const router = Router();
 
@@ -92,65 +86,82 @@ router.get(
   }),
 );
 
+// Checkout: only items in the server-side cart can be ordered. Client-sent items are ignored.
 router.post(
   '/',
   protectedRouteRateLimit,
-  authenticate,
+  identify,
   asyncRoute(async (req: AuthRequest, res) => {
-    const items: OrderItemInput[] = req.body.items;
+    // Browsing and playing work as a guest, but checkout requires a signed-in user.
+    if (!req.user) {
+      return res.status(401).json({ error: 'Please log in to checkout' });
+    }
+    const userId = req.user.id;
+    const owner = `u:${userId}`;
     const db = await getDb();
 
     try {
       const order = await db.transaction(async (tx) => {
-        const lines: OrderLine[] = [];
-        for (const item of items) {
-          const productId = toProductId(item.product_id);
-          const [product] =
-            productId === null
-              ? []
-              : await tx.query<{ price: number; stock: number }>(
-                  'SELECT price, stock FROM products WHERE id = $1::int FOR UPDATE',
-                  [productId],
-                );
-          if (productId === null || !product || product.stock < item.quantity) {
-            throw new InsufficientStockError(item.product_id);
+        // Lock the products being bought so concurrent checkouts cannot oversell.
+        const cart = await tx.query<CartLine>(
+          `
+      SELECT c.product_id, c.quantity, c.penalty, p.price, p.stock
+      FROM cart_items c
+      JOIN products p ON c.product_id = p.id
+      WHERE c.owner = $1::text
+      ORDER BY c.id
+      FOR UPDATE OF p
+    `,
+          [owner],
+        );
+
+        if (cart.length === 0) throw new CheckoutError('Cart is empty');
+
+        // Normal and penalty lines of the same product share stock.
+        const requested = new Map<number, number>();
+        for (const line of cart) {
+          const total = (requested.get(line.product_id) ?? 0) + line.quantity;
+          requested.set(line.product_id, total);
+          if (line.stock < total) {
+            throw new CheckoutError(
+              `Insufficient stock for product ${line.product_id}`,
+            );
           }
-          await tx.query(
-            'UPDATE products SET stock = stock - $1::int WHERE id = $2::int',
-            [item.quantity, productId],
-          );
-          lines.push({
-            productId,
-            quantity: item.quantity,
-            price: product.price,
-          });
         }
 
-        const subtotal = lines.reduce(
-          (sum, line) => sum + line.price * line.quantity,
-          0,
-        );
+        const lines = cart.map((l) => ({
+          ...l,
+          unit: unitPrice(l.price, l.penalty),
+        }));
+        const subtotal = lines.reduce((sum, l) => sum + l.unit * l.quantity, 0);
         const gst = subtotal * 0.1;
         const total = subtotal + gst;
 
         const [created] = await tx.query<{ id: number }>(
           "INSERT INTO orders (user_id, subtotal, gst, total, status) VALUES ($1::int, $2::float8, $3::float8, $4::float8, 'pending') RETURNING id",
-          [req.user?.id, subtotal, gst, total],
+          [userId, subtotal, gst, total],
         );
 
-        for (const line of lines) {
+        for (const l of lines) {
           await tx.query(
             'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1::int, $2::int, $3::int, $4::float8)',
-            [created.id, line.productId, line.quantity, line.price],
+            [created.id, l.product_id, l.quantity, l.unit],
+          );
+          await tx.query(
+            'UPDATE products SET stock = stock - $1::int WHERE id = $2::int',
+            [l.quantity, l.product_id],
           );
         }
+        await tx.query('DELETE FROM cart_items WHERE owner = $1::text', [
+          owner,
+        ]);
 
         return { id: created.id, subtotal, gst, total };
       });
 
       res.status(201).json({ ...order, status: 'pending' });
     } catch (error) {
-      if (error instanceof InsufficientStockError) {
+      if (error instanceof CheckoutError) {
         return res.status(400).json({ error: error.message });
       }
       throw error;
