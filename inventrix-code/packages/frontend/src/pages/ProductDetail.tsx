@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { MouseEvent } from "react";
 import { Link, useParams } from "react-router-dom";
+import MallButtons from "../components/MallButtons";
 import { gsap, useGSAP } from "../fx/gsap";
 import { formatPrice } from "../lib/format";
 import type { Product } from "../lib/types";
@@ -187,6 +188,16 @@ export default function ProductDetail() {
               Out of stock. Check back after the next supply drop.
             </p>
           )}
+
+          <div
+            data-fly
+            className="flex flex-col gap-3 border-t border-white/10 pt-6"
+          >
+            <p className="font-display text-[0.65rem] font-bold tracking-widest text-white/50 uppercase">
+              Also hunt it down at
+            </p>
+            <MallButtons productName={product.name} />
+          </div>
         </div>
       </div>
     </div>

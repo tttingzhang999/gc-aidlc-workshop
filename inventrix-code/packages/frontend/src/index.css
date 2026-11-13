@@ -151,6 +151,19 @@
   color: transparent;
 }
 
+@utility text-gradient-gold {
+  background-image: linear-gradient(
+    100deg,
+    #fff3a0,
+    #ffd700 35%,
+    #ffb800 70%,
+    #ff7a00
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 @utility glow-pink {
   box-shadow: var(--shadow-neon-pink);
 }
