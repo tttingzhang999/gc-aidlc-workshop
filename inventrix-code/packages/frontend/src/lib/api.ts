@@ -4,6 +4,7 @@
  * server's `{ error }` message and the HTTP status (0 for network errors).
  */
 
+import { getGuestId } from "./guest";
 export const TOKEN_KEY = "token";
 export const USER_KEY = "user";
 export const UNAUTHORIZED_EVENT = "inventrix:unauthorized";
@@ -60,6 +61,7 @@ export async function apiFetch<T>(
   const { method = "GET", body, auth = true } = options;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
+  headers["X-Guest-Id"] = getGuestId();
   const token = auth ? readStoredToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
