@@ -7,8 +7,7 @@ import express, {
 import cors from 'cors';
 import { getDb } from './db/index.js';
 import { initDb } from './db/schema.js';
-import { setJwtSecret } from './middleware/auth.js';
-import { resolveJwtSecret } from './secrets.js';
+import { configureCognito } from './cognito.js';
 import authRoutes from './routes/auth.js';
 import productsRoutes from './routes/products.js';
 import ordersRoutes from './routes/orders.js';
@@ -50,7 +49,6 @@ export function createApp(options: AppOptions = {}): Express {
 }
 
 export async function bootstrap(): Promise<void> {
-  const [jwtSecret, db] = await Promise.all([resolveJwtSecret(), getDb()]);
-  setJwtSecret(jwtSecret);
-  await initDb(db);
+  configureCognito();
+  await initDb(await getDb());
 }
