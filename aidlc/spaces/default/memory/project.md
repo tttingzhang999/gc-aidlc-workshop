@@ -56,11 +56,19 @@
 <!-- Format: NEVER [behavior] (affirmed [date]) -->
 <!-- Example: NEVER throw exceptions across service layer boundaries (affirmed 2026-05-17) -->
 
+- NEVER 為了這次前端重構修改後端 REST API（`inventrix-code/packages/api`）的行為或資料格式。 (affirmed 2026-11-13)
+
+- NEVER 把 API key、密碼或其他機密寫進程式碼。 (affirmed 2026-11-13)
+
+- NEVER 把前端改成使用絕對的 API base URL，也不新增部署時才需要設定的前端環境變數。 (affirmed 2026-11-13)
+
 ## Mandated
 
 <!-- Populated by practices-discovery affirmation gate. -->
 <!-- Format: ALWAYS [behavior] (affirmed [date]) -->
 <!-- Example: ALWAYS use Result<T,E> for fallible operations in service layer (affirmed 2026-05-17) -->
+
+- ALWAYS 在每個工作單元結束時讓 `pnpm --filter frontend build` 通過。 (affirmed 2026-11-13)
 
 ## Corrections
 

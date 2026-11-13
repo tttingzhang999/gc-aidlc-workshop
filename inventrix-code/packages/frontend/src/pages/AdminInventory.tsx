@@ -1,67 +1,152 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useRef } from "react";
+import PageHeading from "../components/PageHeading";
+import { gsap, ScrollTrigger, useGSAP } from "../fx/gsap";
+import { formatPrice } from "../lib/format";
+import type { InventoryItem, InventoryStatus } from "../lib/types";
+import { useApi } from "../lib/useApi";
+import Card from "../ui/Card";
+import EmptyState from "../ui/EmptyState";
+import ErrorState from "../ui/ErrorState";
+import LinkButton from "../ui/LinkButton";
+import Skeleton from "../ui/Skeleton";
+import StatusPill from "../ui/StatusPill";
 
-interface InventoryItem {
-  id: number;
-  name: string;
-  stock: number;
-  price: number;
-  status: string;
-}
+const BAR_STYLES: Record<InventoryStatus, string> = {
+  in_stock: "from-neon-lime to-neon-cyan shadow-neon-lime",
+  low_stock: "from-neon-orange to-neon-pink shadow-neon-pink",
+  out_of_stock: "from-neon-red to-neon-red shadow-neon-red",
+};
 
 export default function AdminInventory() {
-  const { token } = useAuth();
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const {
+    data: inventory,
+    error,
+    loading,
+    reload,
+  } = useApi<InventoryItem[]>("/api/analytics/inventory");
+  const listRef = useRef<HTMLUListElement>(null);
+  const maxStock = Math.max(1, ...(inventory ?? []).map((i) => i.stock));
 
-  useEffect(() => {
-    fetch('/api/analytics/inventory', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(setInventory);
-  }, [token]);
+  useGSAP(
+    () => {
+      const bars = gsap.utils.toArray<HTMLElement>("[data-stock-bar]");
+      if (bars.length === 0) return;
+      gsap.set(bars, { scaleX: 0 });
+      ScrollTrigger.batch(bars, {
+        start: "top 95%",
+        once: true,
+        onEnter: (batch) =>
+          gsap.to(batch, {
+            scaleX: 1,
+            stagger: 0.06,
+            duration: 1.3,
+            ease: "elastic.out(1, 0.55)",
+          }),
+      });
+      gsap.from("[data-inv-row]", {
+        x: -60,
+        opacity: 0,
+        stagger: 0.04,
+        duration: 0.6,
+      });
+    },
+    { scope: listRef, dependencies: [inventory], revertOnUpdate: true },
+  );
 
-  const statusColors: Record<string, string> = {
-    out_of_stock: '#dc3545',
-    low_stock: '#ffc107',
-    in_stock: '#28a745'
-  };
-
-  const statusLabels: Record<string, string> = {
-    out_of_stock: 'Out of Stock',
-    low_stock: 'Low Stock',
-    in_stock: 'In Stock'
-  };
+  const outCount = (inventory ?? []).filter(
+    (i) => i.status === "out_of_stock",
+  ).length;
+  const lowCount = (inventory ?? []).filter(
+    (i) => i.status === "low_stock",
+  ).length;
 
   return (
-    <div>
-      <h1 style={{ marginBottom: '2rem' }}>Inventory Management</h1>
-      <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #ddd' }}>
-              <th style={{ padding: '0.5rem', textAlign: 'left' }}>Product</th>
-              <th style={{ padding: '0.5rem', textAlign: 'left' }}>Stock</th>
-              <th style={{ padding: '0.5rem', textAlign: 'left' }}>Price</th>
-              <th style={{ padding: '0.5rem', textAlign: 'left' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inventory.map(item => (
-              <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '0.5rem' }}>{item.name}</td>
-                <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>{item.stock}</td>
-                <td style={{ padding: '0.5rem' }}>${item.price.toFixed(2)}</td>
-                <td style={{ padding: '0.5rem' }}>
-                  <span style={{ padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.9rem', background: statusColors[item.status], color: 'white' }}>
-                    {statusLabels[item.status]}
+    <div className="flex flex-col gap-10">
+      <PageHeading
+        kicker="Admin // reactor core"
+        title="INVENTORY"
+        actions={
+          <LinkButton to="/admin" testId="back-to-dashboard">
+            ← Dashboard
+          </LinkButton>
+        }
+      />
+
+      {loading && !inventory && (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      )}
+      {error && <ErrorState message={error.message} onRetry={reload} />}
+      {inventory && !error && inventory.length === 0 && (
+        <EmptyState title="NO PRODUCTS" message="Nothing to track yet." />
+      )}
+
+      {inventory && !error && inventory.length > 0 && (
+        <Card>
+          <p className="mb-6 flex flex-wrap gap-4 text-sm text-white/60">
+            <span>
+              <span className="font-display font-black text-neon-red">
+                {outCount}
+              </span>{" "}
+              out of stock
+            </span>
+            <span>
+              <span className="font-display font-black text-neon-orange">
+                {lowCount}
+              </span>{" "}
+              running low
+            </span>
+            <span>
+              <span className="font-display font-black text-neon-lime">
+                {inventory.length - outCount - lowCount}
+              </span>{" "}
+              healthy
+            </span>
+          </p>
+          <ul ref={listRef} className="flex flex-col gap-3">
+            {inventory.map((item) => (
+              <li
+                key={item.id}
+                data-inv-row
+                data-testid={`inventory-row-${item.id}`}
+                className={`grid grid-cols-1 items-center gap-3 rounded-2xl border px-4 py-3 md:grid-cols-[minmax(10rem,1.2fr)_2fr_6rem_8rem] ${
+                  item.status === "out_of_stock"
+                    ? "animate-pulse-red border-neon-red/70"
+                    : "border-white/10 bg-white/5"
+                }`}
+              >
+                <span className="flex flex-col">
+                  <span className="font-bold">{item.name}</span>
+                  <span className="text-xs text-white/40">
+                    {formatPrice(item.price)}
                   </span>
-                </td>
-              </tr>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="h-3 flex-1 overflow-hidden rounded-full bg-white/5">
+                    <span
+                      data-stock-bar
+                      className={`block h-full origin-left rounded-full bg-gradient-to-r ${BAR_STYLES[item.status]}`}
+                      style={{
+                        width: `${Math.max(item.stock === 0 ? 100 : 2, (item.stock / maxStock) * 100)}%`,
+                        opacity: item.stock === 0 ? 0.25 : 1,
+                      }}
+                    />
+                  </span>
+                </span>
+                <span className="font-display text-2xl font-black md:text-right">
+                  {item.stock}
+                </span>
+                <span className="md:text-right">
+                  <StatusPill status={item.status} />
+                </span>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }

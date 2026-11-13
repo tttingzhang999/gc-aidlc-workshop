@@ -1,37 +1,103 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import AuthShell from "../components/AuthShell";
+import { useAuth } from "../context/AuthContext";
+import { explodeOut } from "../fx/explodeOut";
+import { shake } from "../fx/shake";
+import { toApiError } from "../lib/api";
+import { readRedirect } from "../lib/redirect";
+import Button from "../ui/Button";
+import Input from "../ui/Input";
+import { useToast } from "../ui/Toast";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setSubmitting(true);
     try {
-      await login(email, password);
-      navigate('/');
-    } catch (err) {
-      setError('Invalid credentials');
+      const user = await login(email.trim(), password);
+      await explodeOut(cardRef.current);
+      toast.success(`Welcome back, ${user.name}`, "Systems online.");
+      navigate(readRedirect(location.state), { replace: true });
+    } catch (err: unknown) {
+      setError(toApiError(err).message);
+      shake(cardRef.current);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '450px', margin: '4rem auto', padding: '3rem', background: 'white', borderRadius: '20px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-      <h1 style={{ marginBottom: '0.5rem', textAlign: 'center', fontSize: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Welcome Back</h1>
-      <p style={{ textAlign: 'center', color: '#666', marginBottom: '2rem' }}>Login to your Inventrix account</p>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-        {error && <p style={{ color: '#dc3545', textAlign: 'center', fontSize: '0.9rem' }}>❌ {error}</p>}
-        <button type="submit" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '14px', fontSize: '1rem' }}>Login</button>
-      </form>
-      <p style={{ marginTop: '1.5rem', textAlign: 'center', color: '#666' }}>
-        Don't have an account? <Link to="/register" style={{ color: '#667eea', fontWeight: '600', textDecoration: 'none' }}>Register</Link>
+    <AuthShell
+      ref={cardRef}
+      kicker="Access terminal"
+      headline="WELCOME BACK."
+      subline="Plug back into the orbit. Your orders are waiting."
+    >
+      <h2 className="font-display text-3xl font-black tracking-tight">Login</h2>
+      <p className="mt-1 text-sm text-white/55">
+        Enter your credentials to continue.
       </p>
-    </div>
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          data-testid="login-email"
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          data-testid="login-password"
+        />
+        {error && (
+          <p
+            role="alert"
+            data-testid="login-error"
+            className="rounded-xl border border-neon-red/60 bg-neon-red/10 px-4 py-3 text-sm text-neon-red"
+          >
+            {error}
+          </p>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          loading={submitting}
+          loadingText="Authenticating…"
+          data-testid="login-submit"
+        >
+          Enter orbit
+        </Button>
+      </form>
+      <p className="mt-6 text-center text-sm text-white/55">
+        No account yet?{" "}
+        <Link
+          to="/register"
+          state={location.state}
+          data-testid="login-to-register"
+          className="font-bold text-neon-cyan hover:text-neon-pink"
+        >
+          Register
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

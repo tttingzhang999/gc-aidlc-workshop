@@ -1,0 +1,26 @@
+{
+  "stage": "code-generation",
+  "upstream_ids": ["D1", "D2", "D3", "D4"],
+  "coverage": [
+    {
+      "id": "D1",
+      "status": "OK",
+      "target": "inventrix-code/packages/frontend/src/context/AuthContext.tsx"
+    },
+    {
+      "id": "D2",
+      "status": "OK",
+      "target": "inventrix-code/packages/frontend/src/components/Layout.tsx"
+    },
+    {
+      "id": "D3",
+      "status": "OK",
+      "target": "inventrix-code/packages/frontend/src/fx/burst.ts"
+    },
+    {
+      "id": "D4",
+      "status": "OK",
+      "target": "inventrix-code/packages/frontend/vite.config.ts"
+    }
+  ]
+}
