@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import LaunchOverlay from "../components/LaunchOverlay";
 import PageHeading from "../components/PageHeading";
 import { useAuth } from "../context/AuthContext";
-import { PENALTY_MULTIPLIER, useCart } from "../context/CartContext";
+import { useCart } from "../context/CartContext";
 import { celebrateOrder } from "../fx/orderFx/celebrateOrder";
 import { readDevOverride } from "../fx/orderFx/devOverride";
 import { pickTheme } from "../fx/orderFx/pickTheme";
@@ -13,7 +13,7 @@ import { shake } from "../fx/shake";
 import { apiFetch, toApiError } from "../lib/api";
 import { formatPrice } from "../lib/format";
 import type { RedirectState } from "../lib/redirect";
-import type { CreatedOrder } from "../lib/types";
+import type { CreatedOrder, PriceTier } from "../lib/types";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import EmptyState from "../ui/EmptyState";
@@ -82,7 +82,7 @@ export default function Cart() {
     }
   };
 
-  const handleRemove = async (productId: number, penalty: boolean) => {
+  const handleRemove = async (productId: number, penalty: PriceTier) => {
     try {
       await removeItem(productId, penalty);
     } catch (err: unknown) {
@@ -107,7 +107,7 @@ export default function Cart() {
       {items.length === 0 && launch === null ? (
         <EmptyState
           title="CART IS EMPTY"
-          message="Win a game of Gomoku to claim the products under your stones. Lose and you can still claim them, at 10x the price."
+          message="Win a game of Gomoku to claim the products under your stones. Surrender and they cost 5x; lose and they cost 10x."
           action={
             <LinkButton
               to="/gomoku"
@@ -126,10 +126,10 @@ export default function Cart() {
         >
           <ul className="flex flex-col gap-4">
             {items.map((item) => (
-              <li key={`${item.product_id}-${item.penalty ? "p" : "n"}`}>
+              <li key={`${item.product_id}-${item.penalty}`}>
                 <Card
-                  glow={item.penalty ? "none" : "cyan"}
-                  className={`flex items-center gap-4 !p-4 ${item.penalty ? "border-neon-red/60" : ""}`}
+                  glow={item.penalty !== 0 ? "none" : "cyan"}
+                  className={`flex items-center gap-4 !p-4 ${item.penalty !== 0 ? "border-neon-red/60" : ""}`}
                   data-testid="cart-item"
                 >
                   {item.image_url && (
@@ -146,9 +146,9 @@ export default function Cart() {
                     <p className="text-sm text-white/60">
                       {formatPrice(item.price)} × {item.quantity}
                     </p>
-                    {item.penalty && (
+                    {item.penalty !== 0 && (
                       <span className="mt-1 inline-block rounded-full border border-neon-red/60 px-2 py-0.5 text-[0.65rem] font-bold tracking-widest text-neon-red uppercase">
-                        {PENALTY_MULTIPLIER}× penalty
+                        {item.multiplier}× penalty
                       </span>
                     )}
                   </div>

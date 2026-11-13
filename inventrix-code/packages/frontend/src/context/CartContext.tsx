@@ -8,16 +8,17 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { apiFetch } from "../lib/api";
-import type { CartItem } from "../lib/types";
+import type { CartItem, PriceTier } from "../lib/types";
 import { useAuth } from "./AuthContext";
 
 export const PENALTY_MULTIPLIER = 10;
+export const SURRENDER_MULTIPLIER = 5;
 
 interface CartContextType {
   items: CartItem[];
   count: number;
   refresh: () => Promise<void>;
-  removeItem: (productId: number, penalty: boolean) => Promise<void>;
+  removeItem: (productId: number, penalty: PriceTier) => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -44,9 +45,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [refresh, token]);
 
   const removeItem = useCallback(
-    async (productId: number, penalty: boolean) => {
+    async (productId: number, penalty: PriceTier) => {
       await apiFetch<null>(
-        `/api/cart/${productId}?penalty=${penalty ? 1 : 0}`,
+        `/api/cart/${productId}?penalty=${penalty}`,
         { method: "DELETE" },
       );
       await refresh();

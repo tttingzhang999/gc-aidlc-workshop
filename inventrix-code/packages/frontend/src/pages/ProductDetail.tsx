@@ -174,8 +174,8 @@ export default function ProductDetail() {
             >
               <p className="text-white/75">
                 🎮 Products are checked out through the cart. Win a game of
-                Gomoku to claim the products under your stones (lose and it
-                costs 10x).
+                Gomoku to claim the products under your stones (surrender and
+                it costs 5x, lose and it costs 10x).
               </p>
               <LinkButton
                 to="/gomoku"
