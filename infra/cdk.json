@@ -1,0 +1,5 @@
+{
+  "app": "npx tsx bin/infra.ts",
+  "versionReporting": false,
+  "output": "cdk.out"
+}
