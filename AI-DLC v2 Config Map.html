@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><style id="qw-theme">:root {
+  --color-bg: #f2f1f4 !important;
+  --color-text: #352f3d !important;
+  --chat-column-max: 720px !important;
+  --flow-size-overview-canvas-min-height: 480px !important;
+  --color-navbar-bg: #eae8ed !important;
+  --color-navbar-fg: #352f3d !important;
+  --color-navbar-fg-muted: color-mix(in srgb, #352f3d 65%, #eae8ed) !important;
+  --color-navbar-divider: #c1bec6 !important;
+  --color-leftnav-bg: #eae8ed !important;
+  --color-bg-chat-view: #fcfcfd !important;
+  --color-bg-secondary: #fff !important;
+  --color-bg-tertiary: #eae8ed !important;
+  --color-bg-hover: #dcdadf !important;
+  --color-surface: #eae8ed !important;
+  --color-surface-hover: #dcdadf !important;
+  --color-surface-active: #c1bec6 !important;
+  --color-border: #c1bec6 !important;
+  --color-border-light: #dcdadf !important;
+  --color-border-strong: #c1bec6 !important;
+  --background-toggle-off-default: #fff0 !important;
+  --color-primary: #4200db !important;
+  --color-primary-dark: #35009e !important;
+  --color-primary-light: #8575ff !important;
+  --color-primary-bg: #e8e6ff !important;
+  --color-primary-hover-border: #35009e !important;
+  --color-nav-icon-active: #4200db !important;
+  --color-nav-hover-border: #4200db !important;
+  --color-primary-alpha-3: color-mix(in srgb, #4200db 3%, transparent) !important;
+  --color-primary-alpha-5: color-mix(in srgb, #4200db 5%, transparent) !important;
+  --color-primary-alpha-8: color-mix(in srgb, #4200db 8%, transparent) !important;
+  --color-primary-alpha-12: color-mix(in srgb, #4200db 12%, transparent) !important;
+  --color-primary-alpha-15: color-mix(in srgb, #4200db 15%, transparent) !important;
+  --color-primary-alpha-20: color-mix(in srgb, #4200db 20%, transparent) !important;
+  --color-primary-alpha-25: color-mix(in srgb, #4200db 25%, transparent) !important;
+  --color-primary-alpha-30: color-mix(in srgb, #4200db 30%, transparent) !important;
+  --color-primary-alpha-40: color-mix(in srgb, #4200db 40%, transparent) !important;
+  --color-primary-alpha-50: color-mix(in srgb, #4200db 50%, transparent) !important;
+  --color-primary-alpha-60: color-mix(in srgb, #4200db 60%, transparent) !important;
+  --color-primary-subtle: color-mix(in srgb, #4200db 18%, transparent) !important;
+  --color-primary-border: #8575ff !important;
+  --color-focus-ring: #4200db !important;
+  --color-sidebar-hover: color-mix(in srgb, #4200db 12%, transparent) !important;
+  --color-sidebar-hover-solid: color-mix(in srgb, #4200db 12%, #f2f1f4) !important;
+  --color-selection-copy: #3b82f64d !important;
+  --color-selection-capture: color-mix(in srgb, #4200db 25%, transparent) !important;
+  --block-hover-outline: 1px dashed color-mix(in srgb, #4200db 50%, transparent) !important;
+  --block-selected-outline: 1px solid #8575ff !important;
+  --block-selection-outline-offset: 2px !important;
+  --block-selected-halo: 0 0 8px color-mix(in srgb, #4200db 40%, transparent) !important;
+  --color-accent: #4200db !important;
+  --color-accent-foreground: #4200db !important;
+  --color-accent-dark: #35009e !important;
+  --color-accent-light: #e8e6ff !important;
+  --color-accent-inverse: #fff !important;
+  --color-link: #4200db !important;
+  --color-brand-ai-gradient-start: #6842ff !important;
+  --color-brand-ai-gradient-mid: #d600ba !important;
+  --color-brand-ai-gradient-end: #ff4b14 !important;
+  --color-primary-gradient-end: #e8e6ff !important;
+  --color-primary-bg-solid: #eae8ed !important;
+  --color-user-bubble: #f3f3f7 !important;
+  --color-user-bubble-text: #352f3d !important;
+  --color-text-secondary: #5e5966 !important;
+  --color-text-tertiary: #7a7582 !important;
+  --color-text-muted: #938f9b !important;
+  --color-text-on-primary: #f2f1f4 !important;
+  --color-success: #00802f !important;
+  --color-success-dark: #00471e !important;
+  --color-success-light: #d9ffd6 !important;
+  --color-success-hover: #005c26 !important;
+  --color-success-bg: #e6f4eb !important;
+  --color-success-border: #c4dccb !important;
+  --color-success-foreground: #00802f !important;
+  --color-success-dark-foreground: #00471e !important;
+  --color-success-text: #00471e !important;
+  --color-error: #db0000 !important;
+  --color-error-dark: #700000 !important;
+  --color-error-light: #ffe0e0 !important;
+  --color-error-hover: #ffe0e0 !important;
+  --color-error-bg: #fbe9ea !important;
+  --color-error-border: #eecbcd !important;
+  --color-error-active-border: #db0000 !important;
+  --color-error-foreground: #db0000 !important;
+  --color-error-dark-foreground: #700000 !important;
+  --color-error-inverse: #fff !important;
+  --color-error-text: #700000 !important;
+  --color-warning: #f2b100 !important;
+  --color-warning-dark: #573a00 !important;
+  --color-warning-light: #fffbbd !important;
+  --color-warning-hover: #db9200 !important;
+  --color-warning-bg: #fdf6e4 !important;
+  --color-warning-border: #f5dda6 !important;
+  --color-warning-foreground: #f2b100 !important;
+  --color-warning-dark-foreground: #573a00 !important;
+  --color-warning-inverse: #573a00 !important;
+  --color-surface-warning: #fffbbd !important;
+  --color-text-warning: #573a00 !important;
+  --color-info: #006ce0 !important;
+  --color-info-dark: #002a66 !important;
+  --color-info-light: #d1f1ff !important;
+  --color-info-hover: #003b8f !important;
+  --color-info-bg: #e6f0fb !important;
+  --color-info-border: #c0d5ec !important;
+  --color-info-foreground: #006ce0 !important;
+  --color-info-dark-foreground: #002a66 !important;
+  --color-info-inverse: #fff !important;
+  --color-overlay: #dcdadf80 !important;
+  --color-shadow: #352f3d40 !important;
+  --color-hover: #352f3d0d !important;
+  --color-tooltip-bg: #eae8ed !important;
+  --color-tooltip-text: #352f3d !important;
+  --color-voice-purple: #8575ff !important;
+  --color-voice-purple-dark: #4200db !important;
+  --color-voice-purple-light: #8575ff !important;
+  --color-voice-red: #db0000 !important;
+  --color-voice-red-dark: #700000 !important;
+  --color-voice-amber: #f2b100 !important;
+  --color-voice-purple-glow: #4200db66 !important;
+  --color-voice-red-glow: #db000066 !important;
+  --font-sans: "Amazon Ember", "Helvetica Neue", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  --font-mono: "SF Mono", "Monaco", "Menlo", "Consolas", monospace !important;
+  --text-2xs: .5625rem !important;
+  --text-xs: .625rem !important;
+  --text-sm: .6875rem !important;
+  --text-base: .75rem !important;
+  --text-md: .8125rem !important;
+  --text-lg: .875rem !important;
+  --text-xl: 1rem !important;
+  --text-2xl: 1.125rem !important;
+  --text-3xl: 1.25rem !important;
+  --text-4xl: 1.5rem !important;
+  --text-5xl: 2rem !important;
+  --spacing-1: calc(.25rem * 1) !important;
+  --spacing-1-5: calc(.25rem * 1.5) !important;
+  --spacing-2: calc(.25rem * 2) !important;
+  --spacing-3: calc(.25rem * 3) !important;
+  --spacing-4: calc(.25rem * 4) !important;
+  --spacing-5: calc(.25rem * 5) !important;
+  --spacing-6: calc(.25rem * 6) !important;
+  --spacing-7: calc(.25rem * 7) !important;
+  --spacing-8: calc(.25rem * 8) !important;
+  --spacing-9: calc(.25rem * 9) !important;
+  --spacing-10: calc(.25rem * 10) !important;
+  --border-radius-rounded-lg: 8px !important;
+  --radius-sm: 6px !important;
+  --radius-md: 10px !important;
+  --radius-card: 12px !important;
+  --radius-lg: 16px !important;
+  --radius-pill: 8px !important;
+  --shadow-sm: 0 1px 2px #352f3d0f !important;
+  --shadow-md: 0 4px 12px #352f3d1a !important;
+  --shadow-lg: 0 4px 16px 4px #352f3d29, 0 2px 6px 1px #352f3d29 !important;
+  --color-success-bg-solid: #d9ffd6 !important;
+  --color-error-bg-solid: #ffe0e0 !important;
+  --color-error-border-solid: #ffe0e0 !important;
+  --color-warning-bg-solid: #fffbbd !important;
+  --color-warning-text: #573a00 !important;
+  --color-info-bg-solid: #d1f1ff !important;
+  --color-info-bg-solid-alt: #d1f1ff !important;
+  --color-info-text: #002a66 !important;
+  --color-info-text-alt: #002a66 !important;
+  --color-emerald: #367c53 !important;
+  --color-teal: #0c9aa7 !important;
+  --color-code-bg: #eae8ed !important;
+  --color-code-header-bg: #dcdadf !important;
+  --color-code-text: #352f3d !important;
+  --color-code-border: #c1bec6 !important;
+  --color-code-muted: #5e5966 !important;
+  --color-inline-code-bg: #eae8ed !important;
+  --color-inline-code-text: #352f3d !important;
+  --color-inline-code-border: #c1bec6 !important;
+  --color-scrollbar-thumb: #c1bec6 !important;
+  --color-scrollbar-track: transparent !important;
+  --color-graph-node-text: #352f3d !important;
+  --color-graph-node-text-dim: #938f9b !important;
+  --color-graph-edge-default: #938f9b !important;
+  --color-graph-edge-cross: #d08025 !important;
+  --color-graph-edge-text: #5e5966 !important;
+  --color-graph-edge-stroke: #f2f1f4 !important;
+  --color-graph-highlight-bg: #ff6b6b !important;
+  --color-graph-highlight-border: #e74c3c !important;
+  --color-graph-search-bg: gold !important;
+  --color-graph-search-border: orange !important;
+  --color-graph-focus-border: #c0392b !important;
+  --color-graph-external-border: #938f9b !important;
+  --color-graph-selected-border: #4200db !important;
+  --qs-data-cat-01: #4338ca !important;
+  --qs-data-cat-02: #d97706 !important;
+  --qs-data-cat-03: #0891b2 !important;
+  --qs-data-cat-04: #8b5cf6 !important;
+  --qs-data-cat-05: #15803d !important;
+  --qs-data-cat-06: #0c4a6e !important;
+  --qs-data-cat-07: #d946ef !important;
+  --qs-data-cat-08: #65a30d !important;
+  --qs-data-cat-09: #1d4ed8 !important;
+  --qs-data-cat-10: #831843 !important;
+  --qs-data-cat-11: #c2410c !important;
+  --qs-data-cat-12: #115e59 !important;
+  --qs-data-cat-other: #737373 !important;
+  --color-graph-cat-person: #c44d4d !important;
+  --color-graph-cat-module: #5e35a8 !important;
+  --color-graph-cat-organization: #0c9aa7 !important;
+  --color-graph-cat-org: #0c9aa7 !important;
+  --color-graph-cat-variable: #d08025 !important;
+  --color-graph-cat-column: #d97706 !important;
+  --color-graph-cat-project: #0891b2 !important;
+  --color-graph-cat-sheet: #0891b2 !important;
+  --color-graph-cat-url: #367c53 !important;
+  --color-graph-cat-product: #8e47ff !important;
+  --color-graph-cat-class: #7138cc !important;
+  --color-graph-cat-dashboard: #8b5cf6 !important;
+  --color-graph-cat-place: #15803d !important;
+  --color-graph-cat-location: #34495e !important;
+  --color-graph-cat-function: #367c53 !important;
+  --color-graph-cat-event: #0c4a6e !important;
+  --color-graph-cat-date: #b34d8a !important;
+  --color-graph-cat-service: #0c4a6e !important;
+  --color-graph-cat-creativework: #d946ef !important;
+  --color-graph-cat-doc: #5e5966 !important;
+  --color-graph-cat-message: #65a30d !important;
+  --color-graph-cat-channel: #65a30d !important;
+  --color-graph-cat-email: #5e35a8 !important;
+  --color-graph-cat-visual: #65a30d !important;
+  --color-graph-cat-file: #3878b0 !important;
+  --color-graph-cat-file-aggregate: #2d6a9f !important;
+  --color-graph-cat-code: #3878b0 !important;
+  --color-graph-cat-decision: #831843 !important;
+  --color-graph-cat-action: #831843 !important;
+  --color-graph-cat-observation: #831843 !important;
+  --color-graph-cat-metric: #c44d78 !important;
+  --color-graph-cat-topic: #c2410c !important;
+  --color-graph-cat-concept: #933 !important;
+  --color-graph-cat-definedterm: #c2410c !important;
+  --color-graph-cat-instruction: #c2410c !important;
+  --color-graph-cat-import: #b06a1a !important;
+  --color-graph-cat-dataset: #115e59 !important;
+  --color-graph-cat-occupation: #115e59 !important;
+  --color-graph-cat-method: #0c9aa7 !important;
+  --color-graph-cat-folder: #5e5966 !important;
+  --color-graph-cat-unknown: #938f9b !important;
+  --color-graph-rel-contains: #938f9b !important;
+  --color-graph-rel-extends: #7138cc !important;
+  --color-graph-rel-implements: #3878b0 !important;
+  --color-graph-rel-imports: #d08025 !important;
+  --color-graph-rel-uses: #367c53 !important;
+  --color-graph-rel-calls: #367c53 !important;
+  --color-graph-rel-references: #d08025 !important;
+  --color-graph-rel-related-to: #938f9b !important;
+  --color-graph-rel-works-on: #933 !important;
+  --color-graph-rel-owns: #0c9aa7 !important;
+  --color-graph-rel-depends-on: #b06a1a !important;
+  --color-graph-rel-parent-of: #938f9b !important;
+  --qs-content: #fff !important;
+  --qs-main: #fff !important;
+  --qs-primary-foreground: #131920 !important;
+  --qs-secondary-foreground: #656871 !important;
+  --qs-tertiary-foreground: #938f9b !important;
+  --qs-placeholder-foreground: #656871 !important;
+  --qs-divider: #dedee3 !important;
+  --qs-default-border: #8c8c94 !important;
+  --qs-neutral-soft: #b4b4bb !important;
+  --qs-neutral-gray-50: #eae8ed !important;
+  --qs-tertiary-background: #eae8ed !important;
+  --qs-action-hover: #f3f3f7 !important;
+  --qs-primary-default: #4200db !important;
+  --qs-primary-dark: #35009e !important;
+  --qs-primary-light: #e8e6ff !important;
+  --qs-success-default: #00802f !important;
+  --qs-error-default: #db0000 !important;
+  --qs-font-sans: "Amazon Ember", "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
+  --mc-status-needs-input-bg: #fffbbd !important;
+  --mc-status-needs-input-fg: #573a00 !important;
+  --mc-status-error-bg: #ffe0e0 !important;
+  --mc-status-error-fg: #700000 !important;
+  --mc-status-running-bg: #d1f1ff !important;
+  --mc-status-running-fg: #002a66 !important;
+  --mc-badge-success-bg: #aeffa8 !important;
+  --mc-badge-success-fg: #00471e !important;
+  --mc-badge-warning-bg: #ffed4d !important;
+  --mc-badge-warning-fg: #573a00 !important;
+  --mc-schedule-tile-border: #ffe0fb !important;
+  --mc-schedule-tile-bg: color-mix(in srgb, #ffe0fb 28%, #fff) !important;
+  --safe-top: 0px !important;
+  --safe-bottom: 0px !important;
+  --safe-left: 0px !important;
+  --safe-right: 0px !important;
+  --qs-action-active: #e8e6ff !important;
+  --qs-action-disabled: #f3f3f7 !important;
+  --qs-active-border: #4200db !important;
+  --qs-application-navbar: #4200db !important;
+  --qs-application-navbar-dark: #35009e !important;
+  --qs-application-navbar-foreground: #fff !important;
+  --qs-application-navbar-light: #e8e6ff !important;
+  --qs-automation-dark: #660052 !important;
+  --qs-automation-default: #d600ba !important;
+  --qs-automation-light: #ffe0fb !important;
+  --qs-automation-medium: #b3008f !important;
+  --qs-automation-soft: #ff94f1 !important;
+  --qs-avatar-blue-bg: #d1f1ff !important;
+  --qs-avatar-blue-fg: #002a66 !important;
+  --qs-avatar-fuchsia-bg: #fce6ff !important;
+  --qs-avatar-fuchsia-fg: #590066 !important;
+  --qs-avatar-green-bg: #d9ffd6 !important;
+  --qs-avatar-green-fg: #00471e !important;
+  --qs-avatar-neutral-bg: #dedee3 !important;
+  --qs-avatar-neutral-fg: #131920 !important;
+  --qs-avatar-orange-bg: #ffe0d6 !important;
+  --qs-avatar-orange-fg: #661800 !important;
+  --qs-avatar-pink-bg: #ffe0fb !important;
+  --qs-avatar-pink-fg: #660052 !important;
+  --qs-avatar-primary-bg: #e8e6ff !important;
+  --qs-avatar-primary-fg: #35009e !important;
+  --qs-avatar-red-bg: #ffe0e0 !important;
+  --qs-avatar-red-fg: #700000 !important;
+  --qs-avatar-violet-bg: #f2e5ff !important;
+  --qs-avatar-violet-fg: #45008a !important;
+  --qs-avatar-yellow-bg: #fffbbd !important;
+  --qs-avatar-yellow-fg: #573a00 !important;
+  --qs-brand: #fff !important;
+  --qs-brand-foreground: #131920 !important;
+  --qs-brand-navbar: #131920 !important;
+  --qs-brand-navbar-dark: #000 !important;
+  --qs-brand-navbar-foreground: #fff !important;
+  --qs-brand-navbar-light: #dedee3 !important;
+  --qs-coachmark: #006ce0 !important;
+  --qs-connection-dark: #661800 !important;
+  --qs-connection-default: #db3300 !important;
+  --qs-connection-light: #ffe0d6 !important;
+  --qs-connection-soft: #ff997a !important;
+  --qs-content-inverse: #333843 !important;
+  --qs-content-inverse-active: #131920 !important;
+  --qs-contrast-foreground: #131920 !important;
+  --qs-data-categorical-01: #4338ca !important;
+  --qs-data-categorical-02: #d97706 !important;
+  --qs-data-categorical-03: #0891b2 !important;
+  --qs-data-categorical-04: #8b5cf6 !important;
+  --qs-data-categorical-05: #15803d !important;
+  --qs-data-categorical-06: #0c4a6e !important;
+  --qs-data-categorical-07: #d946ef !important;
+  --qs-data-categorical-08: #65a30d !important;
+  --qs-data-categorical-09: #1d4ed8 !important;
+  --qs-data-categorical-10: #831843 !important;
+  --qs-data-categorical-11: #c2410c !important;
+  --qs-data-categorical-12: #115e59 !important;
+  --qs-data-categorical-other: #737373 !important;
+  --qs-data-divergent-negative: #ea580c !important;
+  --qs-data-divergent-positive: #4f46e5 !important;
+  --qs-data-divergent-red-green-negative: #dc2626 !important;
+  --qs-data-divergent-red-green-positive: #16a34a !important;
+  --qs-data-missing: #d4d4d4 !important;
+  --qs-data-sentiment-neutral: #737373 !important;
+  --qs-data-sentiment-warning: #9e6900 !important;
+  --qs-data-sequential-duochromatic-high: #1e1b4b !important;
+  --qs-data-sequential-duochromatic-low: #8b5cf6 !important;
+  --qs-data-sequential-monochromatic-high: #4f46e5 !important;
+  --qs-default-badge: #b4b4bb !important;
+  --qs-default-badge-dot: #656871 !important;
+  --qs-dimension: #4200db !important;
+  --qs-dimension-experimental: #4200db !important;
+  --qs-dimension-experimental-foreground: #4200db !important;
+  --qs-dimension-foreground: #fff !important;
+  --qs-disabled: #8c8c94 !important;
+  --qs-disabled-border: #dedee3 !important;
+  --qs-disabled-foreground: #b4b4bb !important;
+  --qs-divider-light: #f3f3f7 !important;
+  --qs-error-active-border: #db0000 !important;
+  --qs-error-border: #ffe0e0 !important;
+  --qs-error-dark: #700000 !important;
+  --qs-error-foreground: #db0000 !important;
+  --qs-error-inverse: #fff !important;
+  --qs-error-light: #ffe0e0 !important;
+  --qs-error-medium: #900 !important;
+  --qs-error-soft: #ff9e9e !important;
+  --qs-focus-offset: 1px !important;
+  --qs-font-base-letter-spacing: .15px !important;
+  --qs-font-family: "Amazon Ember", "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
+  --qs-grid-gap: 16px !important;
+  --qs-grid-gap-xl: 24px !important;
+  --qs-hero-banner-button-hover: color-mix(in srgb, #fff, transparent 60%) !important;
+  --qs-hover-border: #333843 !important;
+  --qs-info-dark: #002a66 !important;
+  --qs-info-default: #006ce0 !important;
+  --qs-info-inverse: #fff !important;
+  --qs-info-light: #d1f1ff !important;
+  --qs-info-medium: #003b8f !important;
+  --qs-info-soft: #75cfff !important;
+  --qs-insight-dark: #590066 !important;
+  --qs-insight-default: #a000b8 !important;
+  --qs-insight-light: #fce6ff !important;
+  --qs-insight-soft: #f299ff !important;
+  --qs-main-foreground: #131920 !important;
+  --qs-main-secondary-foreground: #656871 !important;
+  --qs-measure: #00802f !important;
+  --qs-measure-experimental: #f2b100 !important;
+  --qs-measure-experimental-foreground: #f2b100 !important;
+  --qs-measure-foreground: #fff !important;
+  --qs-neutral-black: #000 !important;
+  --qs-neutral-dark: #333843 !important;
+  --qs-neutral-deep: #656871 !important;
+  --qs-neutral-default: #dedee3 !important;
+  --qs-neutral-light: #f3f3f7 !important;
+  --qs-neutral-lightest: #f9f9fb !important;
+  --qs-neutral-medium: #8c8c94 !important;
+  --qs-neutral-strong: #131920 !important;
+  --qs-neutral-white: #fff !important;
+  --qs-overlay: color-mix(in srgb, #131920, transparent 50%) !important;
+  --qs-primary-inverse: #fff !important;
+  --qs-primary-inverse-foreground: #fff !important;
+  --qs-primary-medium: #8575ff !important;
+  --qs-primary-soft: #b2a8ff !important;
+  --qs-secondary: #dedee3 !important;
+  --qs-secondary-dark: #b4b4bb !important;
+  --qs-secondary-light: #f3f3f7 !important;
+  --qs-spice: #ff9800 !important;
+  --qs-success-dark: #00471e !important;
+  --qs-success-inverse: #fff !important;
+  --qs-success-light: #d9ffd6 !important;
+  --qs-success-medium: #005c26 !important;
+  --qs-success-soft: #aeffa8 !important;
+  --qs-tag-default: #dedee3 !important;
+  --qs-tag-soft-border: #b4b4bb !important;
+  --qs-toggle-tile-lg: calc(.25rem * 15) !important;
+  --qs-toggle-tile-md: calc(.25rem * 12) !important;
+  --qs-toggle-tile-sm: calc(.25rem * 8) !important;
+  --qs-transparent: transparent !important;
+  --qs-visualization-dark: #45008a !important;
+  --qs-visualization-default: #7300e5 !important;
+  --qs-visualization-light: #f2e5ff !important;
+  --qs-visualization-soft: #d4a8ff !important;
+  --qs-warning-dark: #573a00 !important;
+  --qs-warning-default: #f2b100 !important;
+  --qs-warning-experimental: #f2b100 !important;
+  --qs-warning-experimental-light: #fffbbd !important;
+  --qs-warning-experimental-light-foreground: #fffbbd !important;
+  --qs-warning-inverse: #573a00 !important;
+  --qs-warning-light: #fffbbd !important;
+  --qs-warning-medium: #db9200 !important;
+  --qs-warning-soft: #ffed4d !important;
+  --qs-width-modal-lg: 1136px !important;
+  --qs-width-modal-md: 600px !important;
+  --qs-width-modal-sm: 384px !important;
+  --qs-duration-reorder: .125s !important;
+  --qs-ease-reorder: ease-in-out !important;
+  --z-subtask-modal: 10000 !important;
+  --z-above-subtask-modal: 10001 !important;
+  --react-pdf-text-layer: 1 !important;
+  --highlight-bg-color: #b400aa !important;
+  --highlight-selected-bg-color: #006400 !important;
+  --react-pdf-annotation-layer: 1 !important;
+  --annotation-unfocused-field-background: url("data:image/svg+xml;charset=UTF-8,<svg width='1px' height='1px' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' style='fill:rgba(0, 54, 255, 0.13);'/></svg>") !important;
+  --input-focus-border-color: Highlight !important;
+  --input-focus-outline: 1px solid Canvas !important;
+  --input-unfocused-border-color: transparent !important;
+  --input-disabled-border-color: transparent !important;
+  --input-hover-border-color: black !important;
+  --link-outline: none !important;
+}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-DLC v2 — Interactive Configuration Map</title>
+<style>
+:root{
+  --bg:#faf9fc; --surface:#ffffff; --surface-2:#f6f6fa; --ink:#1a1a1a; --ink-2:#5e5e5e; --muted:#9ca3af;
+  --border:rgba(0,0,0,.12); --border-light:rgba(0,0,0,.07);
+  --primary:#9333ea; --primary-bg:#f3e8ff;
+  --skip:#c9ccd4; --skip-bg:#f1f2f5;
+  --p0:#9c27b0; --p0bg:#f6e7fb;
+  --p1:#2e9e4f; --p1bg:#e7f6ec;
+  --p2:#2176d6; --p2bg:#e6f0fb;
+  --p3:#e67e00; --p3bg:#fdf0e0;
+  --p4:#d6336c; --p4bg:#fce7ef;
+  --ok:#16a34a; --no:#b91c1c; --gate:#c2410c; --gatebg:#fdecd8;
+  --radius:12px; --radius-sm:7px;
+  --sans:'Amazon Ember','Helvetica Neue','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:'SF Mono','Monaco','Menlo','Consolas',monospace;
+  --shadow:0 4px 14px rgba(0,0,0,.08);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;padding:22px;}
+h1{font-size:23px;margin:0 0 3px;font-weight:650;}
+.sub{color:var(--ink-2);font-size:13.5px;margin-bottom:16px;max-width:940px;}
+.sub b{color:var(--ink);font-weight:600;}
+
+.viewtoggle{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;width:fit-content;margin-bottom:18px;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
+.viewtoggle button{border:0;background:var(--surface);color:var(--ink-2);padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .14s;border-right:1px solid var(--border);}
+.viewtoggle button:last-child{border-right:0;}
+.viewtoggle button:hover{background:var(--surface-2);color:var(--ink);}
+.viewtoggle button.active{background:var(--primary);color:#fff;}
+
+.controls{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:16px;}
+.ctl-row{display:flex;flex-wrap:wrap;gap:18px 22px;align-items:flex-start;}
+.ctl-group{min-width:0;}
+.ctl-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.scope-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.pill{border:1px solid var(--border);background:var(--surface-2);color:var(--ink-2);border-radius:100px;padding:6px 13px;font-size:12.5px;font-weight:550;cursor:pointer;font-family:var(--sans);transition:all .14s ease;white-space:nowrap;}
+.pill:hover{border-color:var(--primary);color:var(--ink);}
+.pill.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(147,51,234,.3);}
+.seg{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;width:fit-content;}
+.seg button{border:0;background:var(--surface-2);color:var(--ink-2);padding:6px 12px;font-size:12px;font-weight:550;cursor:pointer;font-family:var(--sans);transition:all .12s;border-right:1px solid var(--border);}
+.seg button:last-child{border-right:0;}
+.seg button:hover{background:#f3f4f6;}
+.seg button.active{background:var(--ink);color:#fff;}
+.dim{font-size:10.5px;color:var(--muted);margin-top:5px;max-width:230px;}
+.dim.auto{color:var(--primary);}
+.toggleBtn{border:1px solid var(--border);background:var(--surface-2);color:var(--ink-2);border-radius:var(--radius-sm);padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .14s;display:inline-flex;align-items:center;gap:7px;}
+.toggleBtn.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+.toggleBtn .dot{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.5;}
+.toggleBtn.on .dot{opacity:1;}
+
+.summary{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
+.stat{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:12px 15px;box-shadow:var(--shadow-sm);}
+.stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;}
+.stat .v{font-size:21px;font-weight:680;font-family:var(--mono);margin-top:3px;}
+.stat .v small{font-size:13px;color:var(--muted);font-weight:500;}
+.stat.cmd{flex:2.2;min-width:240px;}
+.stat.cmd .v{font-size:13.5px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:7px 10px;color:var(--primary);word-break:break-all;}
+
+.map-wrap{overflow-x:auto;padding-bottom:6px;}
+.map{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;min-width:900px;}
+.phase{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;}
+.phase-head{padding:10px 12px;color:#fff;font-weight:650;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+.phase-head .cnt{font-size:11px;font-weight:600;background:rgba(255,255,255,.25);border-radius:20px;padding:2px 8px;font-family:var(--mono);}
+.phase-body{padding:9px;display:flex;flex-direction:column;gap:7px;flex:1;}
+.node{border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:8px 9px;cursor:pointer;transition:all .16s ease;position:relative;background:var(--surface-2);}
+.node:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+.node .nid{font-family:var(--mono);font-size:10.5px;font-weight:600;opacity:.75;}
+.node .nname{font-size:12px;font-weight:560;margin-top:1px;line-height:1.25;padding-right:16px;}
+.node.skip{background:var(--skip-bg);border-style:dashed;border-color:var(--border);opacity:.6;}
+.node.skip .nname{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px;}
+.node.exec{background:var(--surface);}
+.node.sel{outline:2.5px solid var(--primary);outline-offset:1px;}
+.node.lead-hl{outline:2.5px solid var(--ok);outline-offset:1px;}
+.node.sup-hl{outline:2.5px dashed var(--p2);outline-offset:1px;}
+.cond{position:absolute;top:6px;right:7px;font-size:9px;font-weight:700;font-family:var(--mono);color:var(--p3);background:var(--p3bg);border-radius:4px;padding:1px 4px;letter-spacing:.03em;}
+.node.skip .cond{display:none;}
+.nfoot{display:flex;align-items:center;gap:5px;margin-top:7px;flex-wrap:wrap;}
+.gate{font-size:9px;font-weight:700;font-family:var(--mono);border-radius:4px;padding:1px 6px;letter-spacing:.03em;display:inline-flex;align-items:center;gap:3px;}
+.gate.on{color:var(--gate);background:var(--gatebg);}
+.gate.auto{color:var(--p2);background:var(--p2bg);}
+.gate.rev{color:var(--primary);background:var(--primary-bg);}
+.ls-tag{font-size:9px;font-weight:800;font-family:var(--mono);border-radius:4px;padding:1px 5px;letter-spacing:.03em;}
+.ls-tag.l{color:#fff;background:var(--ok);}
+.ls-tag.s{color:var(--p2);background:var(--p2bg);border:1px solid var(--p2);}
+/* customize toggle on node */
+.tgl{position:absolute;top:6px;right:7px;width:30px;height:17px;border-radius:20px;background:var(--skip);cursor:pointer;transition:all .15s;border:none;padding:0;z-index:2;}
+.tgl.on{background:var(--ok);}
+.tgl::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:all .15s;}
+.tgl.on::after{left:15px;}
+.node.customizing{cursor:default;}
+.node.customizing .nname{padding-right:34px;}
+
+.legend{display:flex;gap:15px;flex-wrap:wrap;margin:14px 0 2px;font-size:12px;color:var(--ink-2);align-items:center;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.swatch{width:13px;height:13px;border-radius:4px;display:inline-block;}
+.sw-exec{background:var(--surface);border:1px solid var(--border);}
+.sw-skip{background:var(--skip-bg);border:1px dashed var(--border);}
+.chip-cond{font-size:9px;font-weight:700;font-family:var(--mono);color:var(--p3);background:var(--p3bg);border-radius:4px;padding:1px 5px;}
+.chip-gate{font-size:9px;font-weight:700;font-family:var(--mono);color:var(--gate);background:var(--gatebg);border-radius:4px;padding:1px 5px;}
+
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+.card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.card h3{margin:0 0 11px;font-size:14px;font-weight:650;display:flex;align-items:center;gap:7px;}
+.willdo h3{color:var(--ok);}
+.wontdo h3{color:var(--no);}
+.card ul{margin:0;padding-left:4px;list-style:none;}
+.card li{font-size:13px;margin-bottom:8px;padding-left:22px;position:relative;color:var(--ink-2);line-height:1.45;}
+.willdo li::before{content:"✓";position:absolute;left:0;color:var(--ok);font-weight:700;}
+.wontdo li::before{content:"✕";position:absolute;left:0;color:var(--no);font-weight:700;}
+
+#detail{margin-top:18px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+#detail .dh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+#detail .dnum{font-family:var(--mono);font-weight:700;font-size:13px;padding:2px 8px;border-radius:5px;color:#fff;}
+#detail .dname{font-size:16px;font-weight:650;}
+#detail .dstate{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px;margin-left:auto;}
+#detail .dstate.e{background:rgba(34,197,94,.12);color:var(--ok);}
+#detail .dstate.s{background:var(--skip-bg);color:var(--muted);}
+.dmeta{display:flex;gap:24px;flex-wrap:wrap;margin-top:12px;}
+.dmeta .mk{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:4px;}
+.dmeta .mv{font-size:13px;}
+.dmeta code{font-family:var(--mono);font-size:12px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:4px;padding:1px 6px;color:var(--primary);}
+.files{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;max-width:640px;}
+.file{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:5px;padding:3px 8px;color:var(--ink-2);}
+
+.cfgbox{margin-top:18px;background:var(--primary-bg);border:1px solid var(--primary);border-radius:var(--radius);padding:15px 18px;}
+.cfgbox h3{margin:0 0 10px;font-size:13.5px;color:var(--primary);font-weight:650;}
+.cfgbox table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.cfgbox td{padding:5px 8px;vertical-align:top;border-bottom:1px solid rgba(147,51,234,.14);}
+.cfgbox td:first-child{white-space:nowrap;}
+.cfgbox code{font-family:var(--mono);font-size:11.5px;background:var(--surface);border:1px solid var(--border-light);border-radius:4px;padding:1px 6px;color:var(--primary);}
+.cfgbox td.d{color:var(--ink-2);}
+.foot{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.5;}
+
+/* roster */
+.roster-intro,.cfg-intro{color:var(--ink-2);font-size:13px;margin-bottom:16px;max-width:940px;}
+.rgroup{margin-bottom:22px;}
+.rgroup-head{display:flex;align-items:center;gap:9px;margin:0 0 11px;}
+.rgroup-head h2{font-size:15px;font-weight:680;margin:0;}
+.rgroup-head .gc{font-size:11px;font-weight:700;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border-light);border-radius:20px;padding:2px 9px;color:var(--ink-2);}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+.agent{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:14px 15px;box-shadow:var(--shadow-sm);cursor:pointer;transition:all .15s ease;border-left:4px solid var(--primary);}
+.agent:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.agent.active{outline:2px solid var(--primary);outline-offset:1px;}
+.agent.tier-judgment{border-left-color:var(--primary);}
+.agent.tier-templated{border-left-color:var(--muted);}
+.agent.tier-review{border-left-color:var(--p2);}
+.agent.tier-composer{border-left-color:var(--p3);}
+.ag-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px;}
+.ag-key{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);}
+.ag-title{font-size:12px;color:var(--ink-2);font-weight:560;}
+.ag-badges{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap;}
+.tbadge{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:4px;padding:2px 6px;}
+.tbadge.judgment{background:var(--primary-bg);color:var(--primary);}
+.tbadge.templated{background:var(--skip-bg);color:var(--ink-2);}
+.tbadge.review{background:var(--p2bg);color:var(--p2);}
+.tbadge.composer{background:var(--p3bg);color:var(--p3);}
+.tool{font-size:9.5px;font-weight:600;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border-light);border-radius:4px;padding:2px 5px;color:var(--ink-2);}
+.ag-domain{font-size:12px;color:var(--ink-2);line-height:1.45;margin:7px 0 10px;}
+.ag-stages{display:flex;flex-direction:column;gap:6px;}
+.ag-row{display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;}
+.ag-rlabel{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;min-width:52px;padding-top:3px;}
+.ag-rlabel.l{color:var(--ok);}
+.ag-rlabel.s{color:var(--p2);}
+.agchip{font-family:var(--mono);font-size:10.5px;font-weight:600;border-radius:4px;padding:2px 6px;border:1px solid var(--c);color:var(--c);background:var(--cb);}
+.agchip.lead{color:#fff;background:var(--c);}
+.ag-none{font-size:11px;color:var(--muted);font-style:italic;}
+.rnote{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;}
+
+/* config view */
+.cfg-sec{margin-bottom:20px;}
+.cfg-sec h2{font-size:15px;font-weight:680;margin:0 0 10px;}
+.cfgtable{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);}
+.cfgtable th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--border);background:var(--surface-2);}
+.cfgtable td{padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--border-light);vertical-align:top;color:var(--ink-2);}
+.cfgtable tr:last-child td{border-bottom:0;}
+.cfgtable td:first-child{font-weight:600;color:var(--ink);white-space:nowrap;}
+.cfgtable code{font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:4px;padding:1px 6px;color:var(--primary);white-space:nowrap;}
+.tree{background:#1e1e2e;color:#e4e4ef;border-radius:var(--radius);padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;box-shadow:var(--shadow-sm);}
+.tree .c{color:#9aa0b4;}
+.tree .k{color:#f6c177;}
+.tree .p{color:#a6da95;}
+@media(max-width:720px){.cols{grid-template-columns:1fr;}.map{min-width:760px;}}
+</style>
+</head>
+<body>
+<h1>AI-DLC v2 — Interactive Configuration Map</h1>
+<p class="sub">Pick a <b>scope</b>, or switch on <b>Customize</b> to turn individual stages on/off and choose how approvals run. Click any stage for its artifacts, lead agent, and reviewer. The <b>Where It's Configured</b> tab shows exactly which file every setting lives in.</p>
+
+<div class="viewtoggle">
+  <button data-v="map" class="active" onclick="setView('map')">▦ Configuration Map</button>
+  <button data-v="roster" onclick="setView('roster')">👥 Agent Roster</button>
+  <button data-v="cfg" onclick="setView('cfg')">⚙ Where It's Configured</button>
+</div>
+
+<div id="viewMap">
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-group" style="flex:1 1 380px;">
+      <div class="ctl-label">Scope — preset stage selection</div>
+      <div class="scope-grid" id="scopes"></div>
+    </div>
+    <div class="ctl-group">
+      <div class="ctl-label">Depth</div>
+      <div class="seg" id="depth"></div>
+      <div class="dim auto" id="depthAuto"></div>
+    </div>
+    <div class="ctl-group">
+      <div class="ctl-label">Test strategy</div>
+      <div class="seg" id="test"></div>
+      <div class="dim auto" id="testAuto"></div>
+    </div>
+  </div>
+  <div class="ctl-row" style="margin-top:16px;border-top:1px solid var(--border-light);padding-top:15px;">
+    <div class="ctl-group">
+      <div class="ctl-label">① Pick stages</div>
+      <button class="toggleBtn" id="customBtn" onclick="toggleCustom()"><span class="dot"></span><span id="customLbl">Customize: OFF</span></button>
+      <div class="dim" id="customDim">Turn on to toggle individual stages on/off</div>
+    </div>
+    <div class="ctl-group">
+      <div class="ctl-label">② Construction approvals</div>
+      <div class="seg" id="autonomy"></div>
+      <div class="dim" id="autoDim"></div>
+    </div>
+    <div class="ctl-group">
+      <div class="ctl-label">③ Reviewer passes</div>
+      <div class="seg" id="review"></div>
+      <div class="dim" id="revDim"></div>
+    </div>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="stat"><div class="k">Scope</div><div class="v" id="sScope" style="font-size:15px;"></div></div>
+  <div class="stat"><div class="k">Stages run</div><div class="v"><span id="sStages"></span><small> / 33</small></div></div>
+  <div class="stat"><div class="k">Approval gates ≈</div><div class="v" id="sGates"></div></div>
+  <div class="stat"><div class="k">Reviews</div><div class="v" id="sReviews" style="font-size:14px;"></div></div>
+  <div class="stat"><div class="k">Depth / Tests</div><div class="v" id="sDepth" style="font-size:13px;"></div></div>
+  <div class="stat cmd"><div class="k">How to start it</div><div class="v" id="sCmd"></div></div>
+</div>
+
+<div class="legend">
+  <span><span class="swatch sw-exec"></span> Runs</span>
+  <span><span class="swatch sw-skip"></span> Skipped</span>
+  <span><span class="chip-cond">COND</span> may skip at runtime</span>
+  <span><span class="chip-gate">🔒 GATE</span> approval required</span>
+  <span style="color:var(--muted)">Click a stage for details ↓</span>
+</div>
+
+<div class="map-wrap"><div class="map" id="map"></div></div>
+<div id="detail"></div>
+
+<div class="cols">
+  <div class="card willdo"><h3>✅ What this configuration WILL do</h3><ul id="willdo"></ul></div>
+  <div class="card wontdo"><h3>⊘ What it will NOT do</h3><ul id="wontdo"></ul></div>
+</div>
+
+<p class="foot" id="foot"></p>
+</div><!-- /viewMap -->
+
+<div id="viewRoster" style="display:none">
+  <p class="roster-intro">AI-DLC v2 ships a <b>14-agent roster</b>: 11 broadly-capable domain experts that execute stage work, 2 review-only quality-gate agents, and the adaptive-workflows composer. The conductor delegates every stage to a <b>lead</b> agent; others join as <b>support</b>. Click an agent to highlight the stages it leads and supports on the map.</p>
+  <div id="roster"></div>
+  <p class="rnote"><b>Tier</b> governs model/effort: <b>judgment</b> agents inherit your session's own model and effort; <b>templated</b> agents (delivery, pipeline-deploy, operations) use a mid-size model at reduced effort on Claude Code / Codex / opencode. <b>L</b> = leads, <b>S</b> = supports. The two reviewers and the composer are not stage leads.</p>
+</div>
+
+<div id="viewCfg" style="display:none">
+  <p class="cfg-intro">Every dial in this map is <b>plain data in a file</b> — no code. Three things set your configuration: <b>per-run CLI flags</b> (fastest), the <b>scope &amp; stage files</b> (durable defaults), and <b>settings.json</b> (project default). The resolved choices for a run are recorded in that intent's <b>aidlc-state.md</b>.</p>
+
+  <div class="cfg-sec">
+    <h2>What controls each thing — and the file it lives in</h2>
+    <table class="cfgtable">
+      <thead><tr><th>Setting</th><th>What it controls</th><th>Where it's configured</th><th>Change it with</th></tr></thead>
+      <tbody id="cfgRows"></tbody>
+    </table>
+  </div>
+
+  <div class="cfg-sec">
+    <h2>Installed layout — where these files sit in your project</h2>
+    <div class="tree" id="tree"></div>
+  </div>
+
+  <div class="cfg-sec">
+    <h2>A stage file is where membership, artifacts &amp; its reviewer are declared</h2>
+    <div class="tree" id="stageYaml"></div>
+    <p class="rnote">Each stage's <code>scopes:</code> list is transposed at build time into <code>scope-grid.json</code> (the EXECUTE/SKIP grid the engine actually reads). A stage names <code>produces:</code> (its artifacts) and its <code>reviewer:</code> + <code>review_artifact</code> — so artifacts and the review that guards them are declared right on the stage. <code>execution: CONDITIONAL</code> + <code>condition:</code> is what the <b>COND</b> badge reflects.</p>
+  </div>
+</div>
+
+<script>
+const PHASES=[
+ {id:0,name:"Initialization",color:"var(--p0)",bg:"var(--p0bg)"},
+ {id:1,name:"Ideation",color:"var(--p1)",bg:"var(--p1bg)"},
+ {id:2,name:"Inception",color:"var(--p2)",bg:"var(--p2bg)"},
+ {id:3,name:"Construction",color:"var(--p3)",bg:"var(--p3bg)"},
+ {id:4,name:"Operation",color:"var(--p4)",bg:"var(--p4bg)"},
+];
+// rev: which reviewer guards the stage's artifact (from stage frontmatter `reviewer:`)
+const STAGES=[
+ {id:"0.1",p:0,name:"Workspace Scaffold",lead:"orchestrator",cond:"Always (auto)",rev:null,files:["intent record dir"]},
+ {id:"0.2",p:0,name:"Workspace Detection",lead:"orchestrator",cond:"Always (auto)",rev:null,files:["aidlc-state.md"]},
+ {id:"0.3",p:0,name:"State Initialization",lead:"orchestrator",cond:"Always (auto)",rev:null,files:["aidlc-state.md","audit/ shards"]},
+ {id:"1.1",p:1,name:"Intent Capture & Framing",lead:"product-agent",cond:"Always (in scope)",rev:"product-lead",files:["intent statement","stakeholder map"]},
+ {id:"1.2",p:1,name:"Market Research",lead:"product-agent",cond:"Conditional",rev:"product-lead",files:["competitive analysis","build-vs-buy"]},
+ {id:"1.3",p:1,name:"Feasibility & Constraints",lead:"architect-agent",cond:"Conditional",rev:"architecture",files:["feasibility assessment","constraint register","RAID log"]},
+ {id:"1.4",p:1,name:"Scope Definition",lead:"product-agent",cond:"Always (in scope)",rev:"product-lead",files:["scope definition","intent backlog"]},
+ {id:"1.5",p:1,name:"Team Formation",lead:"delivery-agent",cond:"Conditional",rev:null,files:["team assessment","mob composition plan"]},
+ {id:"1.6",p:1,name:"Rough Mockups",lead:"design-agent",cond:"Conditional (UI)",rev:null,files:["wireframes","user flows","concept deck"]},
+ {id:"1.7",p:1,name:"Approval & Handoff",lead:"delivery-agent",cond:"Always (in scope)",rev:"product-lead",files:["initiative brief","decision log"]},
+ {id:"2.1",p:2,name:"Reverse Engineering",lead:"developer-agent",cond:"Conditional (brownfield)",rev:null,files:["9 RE artifacts","codekb/ store"]},
+ {id:"2.2",p:2,name:"Practices Discovery",lead:"pipeline-deploy-agent",cond:"Conditional",rev:null,files:["team-practices.md","discovered-rules.md","evidence.md"]},
+ {id:"2.3",p:2,name:"Requirements Analysis",lead:"product-agent",cond:"Always (in scope)",rev:"product-lead",files:["requirements.md"]},
+ {id:"2.4",p:2,name:"User Stories",lead:"product-agent",cond:"Conditional (user-facing)",rev:"product-lead",files:["stories.md","personas.md"]},
+ {id:"2.5",p:2,name:"Refined Mockups",lead:"design-agent",cond:"Conditional (UI)",rev:null,files:["hi-fi mockups","interaction spec"]},
+ {id:"2.6",p:2,name:"Domain Design",lead:"architect-agent",cond:"Conditional",rev:"architecture",files:["components.md","decisions.md (ADRs)"]},
+ {id:"2.7",p:2,name:"Units Generation",lead:"architect-agent",cond:"Always (in scope)",rev:"architecture",files:["unit-of-work.md","unit-of-work-dependency.md (DAG)","unit-of-work-story-map.md"]},
+ {id:"2.8",p:2,name:"Contract Design",lead:"architect-agent",cond:"Conditional",rev:"architecture",files:["contract-summary.md"]},
+ {id:"2.9",p:2,name:"Delivery Planning",lead:"delivery-agent",cond:"Always (in scope)",rev:null,files:["bolt-plan.md","team-allocation.md","risk-and-sequencing-rationale.md","external-dependency-map.md"]},
+ {id:"3.1",p:3,name:"Functional Design",lead:"architect-agent",cond:"Per Unit (conditional)",rev:"architecture",files:["entities.md","rules.md","functional-spec.md"]},
+ {id:"3.2",p:3,name:"NFR Requirements",lead:"architect-agent",cond:"Per Unit (conditional)",rev:"architecture",files:["performance / security / scalability / reliability / observability NFRs"]},
+ {id:"3.3",p:3,name:"NFR Design",lead:"architect-agent",cond:"Per Unit (conditional)",rev:"architecture",files:["NFR design specifications"]},
+ {id:"3.4",p:3,name:"Infrastructure Design",lead:"aws-platform-agent",cond:"Per Unit (conditional)",rev:"architecture",files:["infrastructure specs","IaC designs"]},
+ {id:"3.5",p:3,name:"Code Generation",lead:"developer-agent",cond:"Per Unit (always)",rev:null,files:["application code","code docs"]},
+ {id:"3.6",p:3,name:"Build and Test",lead:"quality-agent",cond:"Always — once at end",rev:null,files:["test results","quality report"]},
+ {id:"3.7",p:3,name:"CI Pipeline",lead:"pipeline-deploy-agent",cond:"Conditional — once at end",rev:null,files:["CI config","quality gates"]},
+ {id:"4.1",p:4,name:"Deployment Pipeline",lead:"pipeline-deploy-agent",cond:"Conditional",rev:null,files:["CD config","deployment strategy","rollback runbook"]},
+ {id:"4.2",p:4,name:"Environment Provisioning",lead:"aws-platform-agent",cond:"Conditional",rev:null,files:["environment inventory","validation report"]},
+ {id:"4.3",p:4,name:"Deployment Execution",lead:"pipeline-deploy-agent",cond:"Conditional",rev:null,files:["deployment log","smoke tests","health checks"]},
+ {id:"4.4",p:4,name:"Observability Setup",lead:"operations-agent",cond:"Conditional",rev:null,files:["dashboards","alarms","SLO config"]},
+ {id:"4.5",p:4,name:"Incident Response",lead:"operations-agent",cond:"Conditional",rev:null,files:["SSM runbooks","incident plan","escalation matrix"]},
+ {id:"4.6",p:4,name:"Performance Validation",lead:"quality-agent",cond:"Conditional",rev:null,files:["load test results","NFR validation matrix"]},
+ {id:"4.7",p:4,name:"Feedback & Optimization",lead:"operations-agent",cond:"Conditional (terminal)",rev:null,files:["SLO report","cost analysis","feedback loop doc"]},
+];
+const INIT=["0.1","0.2","0.3"];
+const REV_NAME={"product-lead":"aidlc-product-lead-agent","architecture":"aidlc-architecture-reviewer-agent"};
+const SCOPES={
+ enterprise:{label:"enterprise",depth:"Comprehensive",test:"Comprehensive",reviewCap:"adversarial",cmd:"/aidlc enterprise",
+   exec:STAGES.map(s=>s.id),
+   use:"Regulated enterprise feature needing full audit trail, compliance review, and production-grade operations."},
+ feature:{label:"feature",depth:"Standard",test:"Standard",reviewCap:"adversarial",cmd:"/aidlc feature",
+   exec:STAGES.map(s=>s.id),
+   use:"A new feature of any size run through the complete 33-stage lifecycle."},
+ mvp:{label:"mvp",depth:"Standard",test:"Standard",reviewCap:"adversarial",cmd:"/aidlc mvp",
+   exec:["0.1","0.2","0.3","1.1","1.3","1.4","1.6","2.1","2.2","2.3","2.4","2.5","2.6","2.7","2.8","2.9","3.1","3.2","3.3","3.4","3.5","3.6","3.7"],
+   use:"Greenfield minimum viable product — full design & build, but no Operation phase."},
+ poc:{label:"poc",depth:"Minimal",test:"Minimal",reviewCap:"advisory",cmd:"/aidlc poc",
+   exec:["0.1","0.2","0.3","1.1","2.1","2.3","3.5","3.6"],
+   use:"Prove feasibility fast — narrow single-pass path straight to code."},
+ bugfix:{label:"bugfix",depth:"Minimal",test:"Minimal",reviewCap:"advisory",cmd:"/aidlc bugfix",
+   exec:["0.1","0.2","0.3","2.1","2.3","3.5","3.6","4.1","4.3"],
+   use:"Fix a specific bug and ship it — streamlined intent → code → test → deploy."},
+ refactor:{label:"refactor",depth:"Minimal",test:"Minimal",reviewCap:"advisory",cmd:"/aidlc refactor",
+   exec:["0.1","0.2","0.3","2.1","2.3","3.1","3.5","3.6","4.1","4.3"],
+   use:"Restructure existing code without changing behaviour, then deploy."},
+ infra:{label:"infra",depth:"Standard",test:"Standard",reviewCap:"adversarial",cmd:"/aidlc infra",
+   exec:["0.1","0.2","0.3","2.2","2.3","3.2","3.3","3.4","3.7","4.1","4.2","4.3","4.4"],
+   use:"Infrastructure change (new environments, CDK/CFN, cost optimization) — no user-facing stages."},
+ "security-patch":{label:"security-patch",depth:"Minimal",test:"Minimal",reviewCap:"adversarial",cmd:"/aidlc security-patch",
+   exec:["0.1","0.2","0.3","2.1","2.3","3.2","3.5","3.6","4.1","4.3"],
+   use:"Respond to a CVE or vulnerability — fast path through security-relevant stages."},
+ classic:{label:"classic",depth:"Standard",test:"Standard",reviewCap:"adversarial",cmd:"/aidlc --scope classic",
+   exec:["0.1","0.2","0.3","2.1","2.2","2.3","2.4","2.5","2.6","2.7","2.8","2.9","3.1","3.2","3.3","3.4","3.5","3.6","3.7","4.1","4.2","4.3","4.4","4.5","4.6","4.7"],
+   use:"V1-style lifecycle without the Ideation ceremony — the implicit default scope."},
+ workshop:{label:"workshop",depth:"Standard",test:"Minimal",reviewCap:"advisory",cmd:"/aidlc workshop",
+   exec:["0.1","0.2","0.3","2.1","2.2","2.3","2.4","2.5","2.6","2.7","2.8","2.9","3.1","3.2","3.3","3.4","3.5","3.6","3.7","4.1","4.2","4.3","4.4","4.5","4.6","4.7"],
+   use:"Facilitated workshop / training lab — full Inception→Operation lifecycle with mandatory gates and a lighter teaching test floor."},
+ express:{label:"express",depth:"Minimal",test:"Minimal",reviewCap:"none",cmd:"/aidlc express",
+   exec:["0.1","0.2","0.3","2.1","2.3","3.5","3.6","4.1","4.3","4.4"],
+   use:"Lightest path from requirements → code → test → conditional deploy. No design pass, no reviewers."},
+};
+const DEPTHS={Minimal:"1–2 page artifacts, key decisions only.",Standard:"Complete artifacts, all required sections.",Comprehensive:"Expanded artifacts, optional sections, compliance cross-refs."};
+const TESTS={Minimal:"~5–15 tests — 1 per requirement + happy path.",Standard:"~5–8 tests/component, unit + integration.",Comprehensive:"10–15 tests/component, all types incl. E2E, perf, security."};
+const REVIEWS={adversarial:"Full mutually-blind reviewer pass before each guarded gate.",advisory:"Reviewers advise but don't block — lighter touch.",none:"No reviewer dispatch — fastest, least assurance."};
+
+const AGENTS=[
+ {cat:"domain",key:"aidlc-product-agent",title:"Product Manager",tier:"judgment",tools:["WebSearch"],domain:"Requirements, user stories, scope, market research. Most active in Ideation & Inception.",lead:["1.1","1.2","1.4","2.3","2.4"],support:["1.6","1.7","2.5"]},
+ {cat:"domain",key:"aidlc-design-agent",title:"UX Designer",tier:"judgment",tools:["WebSearch"],domain:"UX/UI design, wireframes, interaction design, accessibility.",lead:["1.6","2.5"],support:["2.4","2.6"]},
+ {cat:"domain",key:"aidlc-delivery-agent",title:"Delivery Manager",tier:"templated",tools:[],domain:"Team formation, capacity planning, delivery sequencing, phase handoffs.",lead:["1.5","1.7","2.9"],support:["1.4","2.7"]},
+ {cat:"domain",key:"aidlc-architect-agent",title:"Solutions Architect",tier:"judgment",tools:[],domain:"Central design authority — broadest involvement (10 stages / 3 phases): feasibility, domain & functional design, NFRs, decomposition, contracts.",lead:["1.3","2.6","2.7","2.8","3.1","3.2","3.3"],support:["1.1","2.1","2.9"]},
+ {cat:"domain",key:"aidlc-aws-platform-agent",title:"AWS Platform",tier:"judgment",tools:["Bash"],domain:"AWS infrastructure, CDK/CloudFormation, environment provisioning, cost optimization.",lead:["3.4","4.2"],support:["1.3","2.6","2.8","3.3","4.7"]},
+ {cat:"domain",key:"aidlc-compliance-agent",title:"Compliance",tier:"judgment",tools:["WebSearch"],domain:"Regulatory scanning, data classification, risk assessment. Advisory only — no lead stages.",lead:[],support:["1.3","3.2","3.4","4.2"]},
+ {cat:"domain",key:"aidlc-devsecops-agent",title:"DevSecOps",tier:"judgment",tools:["Bash"],domain:"Threat modelling, security scanning, DevSecOps pipeline integration. Support only.",lead:[],support:["2.2","3.2","3.4","3.6","4.2"]},
+ {cat:"domain",key:"aidlc-developer-agent",title:"Developer",tier:"judgment",tools:["Bash"],domain:"Code implementation, code analysis, data modelling. Spans Inception → Construction → Operation.",lead:["2.1","3.5"],support:["2.2","2.4","3.1","4.3"]},
+ {cat:"domain",key:"aidlc-quality-agent",title:"QA Engineer",tier:"judgment",tools:["Bash"],domain:"Test strategy, test generation, quality gates, performance validation.",lead:["3.6","4.6"],support:["2.2","2.4","3.2"]},
+ {cat:"domain",key:"aidlc-pipeline-deploy-agent",title:"Pipeline & Deploy",tier:"templated",tools:["Bash"],domain:"CI/CD pipelines, deployment strategy, release execution with rollback.",lead:["2.2","3.7","4.1","4.3"],support:[]},
+ {cat:"domain",key:"aidlc-operations-agent",title:"SRE / Operations",tier:"templated",tools:["Bash"],domain:"Observability, incident response, SLO tracking. Closes the loop — feeds insights back to Product.",lead:["4.4","4.5","4.7"],support:["4.6"]},
+ {cat:"review",key:"aidlc-product-lead-agent",title:"Product Lead Reviewer",tier:"review",tools:[],domain:"Review-only quality gate for product / Ideation artifacts (intent, scope, requirements, stories). Mutually blind before the approval gate.",lead:[],support:[]},
+ {cat:"review",key:"aidlc-architecture-reviewer-agent",title:"Architecture Reviewer",tier:"review",tools:[],domain:"Review-only quality gate for architecture & design artifacts (domain design, units, contracts, NFR & infra design). Mutually blind before the approval gate.",lead:[],support:[]},
+ {cat:"composer",key:"aidlc-composer-agent",title:"Adaptive-Workflows Composer",tier:"composer",tools:[],domain:"Reads your task and proposes a tailored EXECUTE/SKIP stage grid (/aidlc compose). Can author a custom scope and recompose a running workflow.",lead:[],support:[]},
+];
+const CATS=[{id:"domain",name:"11 Domain Agents",note:"execute stage work as lead or support"},{id:"review",name:"2 Quality-Gate Reviewers",note:"review-only, mutually blind, before approval gates"},{id:"composer",name:"1 Adaptive Composer",note:"proposes a tailored stage plan"}];
+
+const CFG_ROWS=[
+ ["Scope","Which stages run (the preset EXECUTE/SKIP set) + default depth, test strategy & review cap","<code>.claude/scopes/aidlc-&lt;name&gt;.md</code> frontmatter","<code>/aidlc &lt;scope&gt;</code>, <code>--scope</code>, or auto-detect from keywords"],
+ ["Stage membership","Whether a given stage runs under a scope","Each stage's <code>scopes:</code> list → compiled to <code>.claude/tools/data/scope-grid.json</code>","Add/remove the scope tag + recompile, or <code>/aidlc compose</code> for a custom per-stage grid"],
+ ["Custom stage pick","Turn individual stages on/off for one run","Composer authors a real custom scope (2 files) from your approved grid","<code>/aidlc compose</code> / <code>--new-scope</code>; mid-run: <code>/aidlc --stage</code>, 'Add Skipped Stage' at a gate, or just ask"],
+ ["Phase","The 5 fixed phases (structural grouping of stages)","Each stage's <code>phase:</code> frontmatter","Structural — not user-configured"],
+ ["Artifacts","The files each stage produces","Each stage's <code>produces:</code> / <code>optional_produces:</code> frontmatter","Depth level scales detail; edit frontmatter to author new ones"],
+ ["Approvals (gates)","The approve / request-changes checkpoint after a stage","Engine default = every non-init stage; Construction gates set once by the ladder prompt; <code>summary_confirmation:</code> on the stage","Ladder prompt (gated vs autonomous), 'Add Skipped Stage', <code>AIDLC_UNATTENDED=1</code> for unattended"],
+ ["Reviews","Reviewer-agent pass that guards a stage's artifact","Stage <code>reviewer:</code> / <code>review_artifact</code> / <code>review_class</code>; scope <code>review_cap</code>","<code>--review adversarial|advisory|none</code>, <code>/aidlc config set review</code>"],
+ ["Depth","Artifact detail level","Scope <code>depth:</code> default; resolved value in <code>aidlc-state.md</code>","<code>--depth</code>, <code>/aidlc config set depth</code>"],
+ ["Test strategy","Test volume (independent of depth)","Scope <code>testStrategy:</code> default; <code>aidlc-state.md</code>","<code>--test-strategy</code>, <code>/aidlc config set test-strategy</code>"],
+ ["Project default scope","Fallback scope when none named","<code>.claude/settings.json</code> → <code>AWS_AIDLC_DEFAULT_SCOPE</code>","Edit settings.json (defaults to <code>classic</code>)"],
+ ["Active run state","Resolved scope/depth/test/review/autonomy for one intent","<code>aidlc/spaces/&lt;space&gt;/intents/&lt;id&gt;/aidlc-state.md</code>","Written by the engine; honoured on resume; CLI changes rewrite it"],
+];
+
+let cur="feature", depth=null, test=null, sel=null, depthManual=false, testManual=false, agentSel=null;
+let customMode=false, execOverride=null, autonomy="gated", review=null, reviewManual=false;
+
+function execSet(){return execOverride?execOverride:new Set(SCOPES[cur].exec);}
+function isCustom(){return !!execOverride;}
+function phaseCount(pid,set){return STAGES.filter(s=>s.p===pid&&set.has(s.id)).length;}
+function phaseTotal(pid){return STAGES.filter(s=>s.p===pid).length;}
+
+function setView(v){
+  document.getElementById("viewMap").style.display=v==="map"?"":"none";
+  document.getElementById("viewRoster").style.display=v==="roster"?"":"none";
+  document.getElementById("viewCfg").style.display=v==="cfg"?"":"none";
+  document.querySelectorAll(".viewtoggle button").forEach(b=>b.classList.toggle("active",b.dataset.v===v));
+}
+function toggleCustom(){customMode=!customMode; if(!customMode){} render();}
+function pickScope(k){cur=k;depthManual=false;testManual=false;reviewManual=false;execOverride=null;sel=null;render();}
+function toggleStage(id){
+  if(INIT.includes(id))return;
+  const s=execOverride?execOverride:new Set(SCOPES[cur].exec);
+  if(s.has(id))s.delete(id);else s.add(id);
+  execOverride=s;render();
+}
+function buildScopes(){
+  const el=document.getElementById("scopes");el.innerHTML="";
+  Object.keys(SCOPES).forEach(k=>{const b=document.createElement("button");b.className="pill"+(k===cur&&!isCustom()?" active":"");b.textContent=SCOPES[k].label;b.onclick=()=>pickScope(k);el.appendChild(b);});
+}
+function buildSeg(elId,opts,getCur,setFn){const el=document.getElementById(elId);el.innerHTML="";opts.forEach(o=>{const b=document.createElement("button");b.className=(o.v===getCur()?"active":"");b.textContent=o.t;b.onclick=()=>setFn(o.v);el.appendChild(b);});}
+
+function render(){
+  const S=SCOPES[cur], set=execSet();
+  if(!depthManual) depth=S.depth;
+  if(!testManual) test=S.test;
+  if(!reviewManual) review=S.reviewCap;
+
+  document.querySelectorAll("#scopes .pill").forEach(p=>p.classList.toggle("active",p.textContent===S.label&&!isCustom()));
+  buildSeg("depth",[{v:"Minimal",t:"Min"},{v:"Standard",t:"Std"},{v:"Comprehensive",t:"Comp"}],()=>depth,o=>{depth=o;depthManual=true;render();});
+  buildSeg("test",[{v:"Minimal",t:"Min"},{v:"Standard",t:"Std"},{v:"Comprehensive",t:"Comp"}],()=>test,o=>{test=o;testManual=true;render();});
+  buildSeg("autonomy",[{v:"gated",t:"Gate every stage"},{v:"autonomous",t:"Autonomous after skeleton"}],()=>autonomy,o=>{autonomy=o;render();});
+  buildSeg("review",[{v:"adversarial",t:"Adversarial"},{v:"advisory",t:"Advisory"},{v:"none",t:"None"}],()=>review,o=>{review=o;reviewManual=true;render();});
+
+  document.getElementById("depthAuto").textContent=depthManual?("set to "+depth):("scope default: "+S.depth);
+  document.getElementById("depthAuto").className="dim"+(depthManual?"":" auto");
+  document.getElementById("testAuto").textContent=testManual?("set to "+test):("scope default: "+S.test);
+  document.getElementById("testAuto").className="dim"+(testManual?"":" auto");
+  document.getElementById("autoDim").textContent = autonomy==="gated"?"A gate after every executed stage":"One walking-skeleton gate, then Construction runs hands-off";
+  document.getElementById("revDim").textContent = REVIEWS[review];
+  const cb=document.getElementById("customBtn");cb.classList.toggle("on",customMode);
+  document.getElementById("customLbl").textContent="Customize: "+(customMode?"ON":"OFF");
+  document.getElementById("customDim").textContent = customMode?"Toggle any stage on/off — this builds a custom scope":"Turn on to toggle individual stages on/off";
+
+  // summary
+  const n=set.size;
+  let gates=n-3;
+  if(autonomy==="autonomous"){const c=STAGES.filter(s=>s.p===3&&set.has(s.id)).length;if(c>1)gates-=(c-1);}
+  // reviews count: guarded executed stages, unless review none
+  const revCount = review==="none"?0:STAGES.filter(s=>s.rev&&set.has(s.id)).length;
+  document.getElementById("sScope").textContent=isCustom()?("custom · base "+S.label):S.label;
+  document.getElementById("sStages").textContent=n;
+  document.getElementById("sGates").textContent="~"+Math.max(gates,0);
+  document.getElementById("sReviews").innerHTML = review==="none"?"<span style='color:var(--muted)'>none</span>":(revCount+" × <span style='font-size:11px'>"+review+"</span>");
+  document.getElementById("sDepth").innerHTML=depth.slice(0,4)+" <span style='color:var(--muted)'>/</span> "+test.slice(0,4);
+  document.getElementById("sCmd").textContent=isCustom()?"/aidlc compose \"…\"  (authors a custom scope)":S.cmd;
+
+  const ag=agentSel?AGENTS.find(a=>a.key===agentSel):null;
+  const leadSet=ag?new Set(ag.lead):new Set();
+  const supSet=ag?new Set(ag.support):new Set();
+
+  const map=document.getElementById("map");map.innerHTML="";
+  PHASES.forEach(ph=>{
+    const col=document.createElement("div");col.className="phase";
+    const head=document.createElement("div");head.className="phase-head";head.style.background=ph.color;
+    head.innerHTML=`<span>${ph.name}</span><span class="cnt">${phaseCount(ph.id,set)}/${phaseTotal(ph.id)}</span>`;
+    col.appendChild(head);
+    const body=document.createElement("div");body.className="phase-body";
+    STAGES.filter(s=>s.p===ph.id).forEach(s=>{
+      const run=set.has(s.id);
+      const node=document.createElement("div");
+      let cls="node "+(run?"exec":"skip");
+      if(sel===s.id)cls+=" sel";
+      if(leadSet.has(s.id))cls+=" lead-hl";else if(supSet.has(s.id))cls+=" sup-hl";
+      if(customMode)cls+=" customizing";
+      node.className=cls;
+      if(run){node.style.borderColor=ph.color;node.style.background=ph.bg;}
+      const isCond=run&&/Conditional|Per Unit|once at end/i.test(s.cond)&&!INIT.includes(s.id);
+      // footer badges (gates + review + agent L/S)
+      let foot="";
+      if(run&&!INIT.includes(s.id)){
+        const constrAuto = (ph.id===3 && autonomy==="autonomous");
+        const firstConstr = STAGES.filter(x=>x.p===3&&set.has(x.id))[0];
+        if(constrAuto && !(firstConstr&&firstConstr.id===s.id)){
+          foot+=`<span class="gate auto">⚡ auto</span>`;
+        } else {
+          foot+=`<span class="gate on">🔒 gate</span>`;
+        }
+        if(s.rev && review!=="none") foot+=`<span class="gate rev">⬡ ${review.slice(0,3)}</span>`;
+      }
+      if(leadSet.has(s.id))foot+=`<span class="ls-tag l">LEADS</span>`;else if(supSet.has(s.id))foot+=`<span class="ls-tag s">SUPPORTS</span>`;
+      const toggle = customMode&&!INIT.includes(s.id) ? `<button class="tgl ${run?'on':''}" title="${run?'Running — click to skip':'Skipped — click to run'}"></button>` : (isCond?`<span class="cond">COND</span>`:``);
+      node.innerHTML=`<div class="nid" style="${run?'color:'+ph.color:''}">${s.id}</div><div class="nname">${s.name}</div>${foot?`<div class="nfoot">${foot}</div>`:``}${toggle}`;
+      if(customMode&&!INIT.includes(s.id)){
+        const t=node.querySelector(".tgl");
+        if(t)t.onclick=(e)=>{e.stopPropagation();toggleStage(s.id);};
+      }
+      node.onclick=()=>{sel=s.id;render();};
+      body.appendChild(node);
+    });
+    col.appendChild(body);map.appendChild(col);
+  });
+
+  renderDetail(set);
+  renderExplain(set);
+  document.getElementById("foot").innerHTML =
+    `Model: AI-DLC Workflows 2.0 — 5 phases, 33 stages, 11 scopes, 14 agents, 3 depth &amp; 3 test levels. `+
+    `<b>Approval gates ≈</b> executed non-init stages (autonomous Construction collapses its intermediate gates to one walking-skeleton gate). `+
+    `<b>Reviews</b> are reviewer-agent passes that guard design/product artifacts before their gate — capped by <code style="font-size:10px">--review</code>. Exact counts are computed by the engine at launch.`;
+}
+
+function renderDetail(set){
+  const d=document.getElementById("detail");
+  if(!sel){d.innerHTML=`<div style="color:var(--muted);font-size:13px;">▸ Click any stage to see its lead agent, reviewer, approval gate, and the files it writes${customMode?' — or use the ●/○ toggles to turn stages on/off':''}.</div>`;return;}
+  const s=STAGES.find(x=>x.id===sel),ph=PHASES[s.p],run=set.has(s.id);
+  const init=INIT.includes(s.id);
+  let gateTxt;
+  if(init)gateTxt="None — runs automatically";
+  else if(!run)gateTxt="—";
+  else if(ph.id===3&&autonomy==="autonomous"){const f=STAGES.filter(x=>x.p===3&&set.has(x.id))[0];gateTxt=(f&&f.id===s.id)?"🔒 Walking-skeleton gate":"⚡ Autonomous (no stage gate)";}
+  else gateTxt="🔒 Approval gate (approve / request changes)";
+  const revTxt = s.rev ? (review==="none"?("declared "+REV_NAME[s.rev]+" — suppressed by --review none"):(REV_NAME[s.rev]+" · "+review)) : "— none";
+  d.innerHTML=`
+    <div class="dh">
+      <span class="dnum" style="background:${ph.color}">${s.id}</span>
+      <span class="dname">${s.name}</span>
+      <span class="dstate ${run?'e':'s'}">${run?'Runs':'Skipped'}${isCustom()?' · custom':' · '+SCOPES[cur].label}</span>
+    </div>
+    <div class="dmeta">
+      <div><div class="mk">Phase</div><div class="mv" style="color:${ph.color};font-weight:600">${ph.name}</div></div>
+      <div><div class="mk">Lead agent</div><div class="mv"><code>aidlc-${s.lead}</code></div></div>
+      <div><div class="mk">Condition</div><div class="mv">${s.cond}</div></div>
+      <div><div class="mk">Approval</div><div class="mv">${gateTxt}</div></div>
+      <div><div class="mk">Reviewer</div><div class="mv">${revTxt}</div></div>
+    </div>
+    <div style="margin-top:12px"><div class="mk" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:5px">Files / artifacts produced <span style="text-transform:none;font-weight:400">— declared in this stage's <code style="font-size:10px">produces:</code></span></div>
+      <div class="files">${s.files.map(f=>`<span class="file">${f}</span>`).join("")}</div></div>`;
+}
+
+function renderExplain(set){
+  const S=SCOPES[cur],will=[],wont=[];
+  will.push(`<b>Use case:</b> ${isCustom()?'Custom plan based on '+S.label+' — '+S.use:S.use}`);
+  PHASES.forEach(p=>{if(p.id===0)return;const n=phaseCount(p.id,set),t=phaseTotal(p.id);if(n===t&&t>0)will.push(`Run the full <b>${p.name}</b> phase (${n}/${t}).`);else if(n>0)will.push(`Run <b>part of ${p.name}</b> — ${n} of ${t} stages.`);});
+  will.push(`Produce <b>${depth}</b>-depth artifacts: ${DEPTHS[depth]}`);
+  will.push(`Generate tests at <b>${test}</b> volume: ${TESTS[test]}`);
+  if(autonomy==="gated")will.push(`Pause for your <b>approval after every executed stage</b>.`);
+  else will.push(`Pause once at the <b>walking-skeleton gate</b>, then build Construction <b>autonomously</b>.`);
+  will.push(review==="none"?`Run <b>no reviewer passes</b> (speed over assurance).`:`Guard design/product artifacts with <b>${review}</b> reviewer passes.`);
+
+  PHASES.forEach(p=>{if(p.id===0)return;const n=phaseCount(p.id,set),t=phaseTotal(p.id);if(n===0&&t>0)wont.push(`Touch the <b>${p.name}</b> phase — all ${t} stages skipped.`);});
+  const skipped=STAGES.filter(s=>!set.has(s.id)&&!INIT.includes(s.id));
+  const notable={"1.2":"market/competitive research","2.1":"reverse-engineer existing code","2.4":"user stories & personas","2.6":"domain/component design","2.7":"decompose work into Units (DAG)","3.1":"functional design specs","3.4":"infrastructure / IaC design","3.7":"a CI pipeline","4.1":"a deployment pipeline","4.4":"observability (dashboards/alarms/SLOs)","4.6":"performance / load validation"};
+  Object.keys(notable).filter(id=>skipped.some(s=>s.id===id)).slice(0,5).forEach(id=>wont.push(`Not <b>${notable[id]}</b> (stage ${id} skipped).`));
+  if(autonomy==="autonomous")wont.push(`Not stop between Construction stages — only failures halt it.`);
+  if(review==="none")wont.push(`Not run the mutually-blind reviewer agents.`);
+  if(set.size>=33&&autonomy==="gated")wont.push("Nothing skipped — maximum ceremony. Trim with a lighter scope or Customize.");
+  document.getElementById("willdo").innerHTML=will.map(x=>`<li>${x}</li>`).join("");
+  document.getElementById("wontdo").innerHTML=wont.map(x=>`<li>${x}</li>`).join("");
+}
+
+function stageChip(id,type){const s=STAGES.find(x=>x.id===id);if(!s)return"";const ph=PHASES[s.p];return `<span class="agchip ${type==='L'?'lead':''}" style="--c:${ph.color};--cb:${ph.bg}" title="${type==='L'?'Leads':'Supports'}: ${s.name}">${id}</span>`;}
+function renderRoster(){
+  const root=document.getElementById("roster");root.innerHTML="";
+  CATS.forEach(c=>{
+    const members=AGENTS.filter(a=>a.cat===c.id);
+    const g=document.createElement("div");g.className="rgroup";
+    g.innerHTML=`<div class="rgroup-head"><h2>${c.name}</h2><span class="gc">${members.length}</span><span style="font-size:11px;color:var(--muted)">— ${c.note}</span></div>`;
+    const grid=document.createElement("div");grid.className="agrid";
+    members.forEach(a=>{
+      const card=document.createElement("div");card.className="agent tier-"+a.tier+(agentSel===a.key?" active":"");
+      const leadRow=a.lead.length?`<div class="ag-row"><span class="ag-rlabel l">Leads</span>${a.lead.map(id=>stageChip(id,'L')).join("")}</div>`:"";
+      const supRow=a.support.length?`<div class="ag-row"><span class="ag-rlabel s">Supports</span>${a.support.map(id=>stageChip(id,'S')).join("")}</div>`:"";
+      const noStages=(!a.lead.length&&!a.support.length)?`<div class="ag-none">No stage leadership — ${a.cat==='composer'?'runs on /aidlc compose':'runs at review gates'}.</div>`:"";
+      const tools=a.tools.length?a.tools.map(t=>`<span class="tool">${t}</span>`).join(""):"";
+      card.innerHTML=`<div class="ag-top"><span class="ag-key">${a.key}</span><div class="ag-badges"><span class="tbadge ${a.tier}">${a.tier}</span>${tools}</div></div><div class="ag-title">${a.title}</div><div class="ag-domain">${a.domain}</div><div class="ag-stages">${leadRow}${supRow}${noStages}</div>`;
+      card.onclick=()=>{agentSel=(agentSel===a.key)?null:a.key;renderRoster();if(agentSel){setView("map");render();window.scrollTo({top:0,behavior:"smooth"});}else{render();}};
+      grid.appendChild(card);
+    });
+    g.appendChild(grid);root.appendChild(g);
+  });
+}
+
+function renderCfg(){
+  document.getElementById("cfgRows").innerHTML=CFG_ROWS.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+  document.getElementById("tree").innerHTML=
+`<span class="c"># Claude Code shown; Kiro uses .kiro/, Codex .codex/, etc.</span>
+&lt;project&gt;/
+├── <span class="k">.claude/</span>                     <span class="c"># the engine</span>
+│   ├── <span class="p">settings.json</span>           <span class="c"># AWS_AIDLC_DEFAULT_SCOPE, hooks, announcements</span>
+│   ├── <span class="k">scopes/</span>
+│   │   └── <span class="p">aidlc-&lt;name&gt;.md</span>     <span class="c"># scope identity: depth, testStrategy, review_cap, keywords</span>
+│   ├── <span class="k">agents/</span>
+│   │   └── <span class="p">aidlc-*-agent.md</span>    <span class="c"># the 14 agent personas</span>
+│   └── <span class="k">tools/data/</span>
+│       └── <span class="p">scope-grid.json</span>     <span class="c"># compiled EXECUTE/SKIP grid (generated — never hand-edit)</span>
+└── <span class="k">aidlc/</span>
+    └── <span class="k">spaces/&lt;space&gt;/</span>
+        ├── <span class="k">memory/</span>              <span class="c"># team / project / org rules</span>
+        └── <span class="k">intents/&lt;YYMMDD-label&gt;/</span>
+            ├── <span class="p">aidlc-state.md</span>   <span class="c"># resolved scope/depth/test/review for THIS run</span>
+            └── <span class="k">audit/</span>           <span class="c"># event ledger shards</span>`;
+  document.getElementById("stageYaml").innerHTML=
+`<span class="c"># stages/&lt;phase&gt;/&lt;slug&gt;.md  — e.g. construction/functional-design.md</span>
+<span class="k">---</span>
+<span class="k">slug:</span> <span class="p">functional-design</span>
+<span class="k">phase:</span> <span class="p">construction</span>          <span class="c"># ← which PHASE</span>
+<span class="k">execution:</span> <span class="p">CONDITIONAL</span>        <span class="c"># ← drives the COND badge</span>
+<span class="k">condition:</span> <span class="p">New data models or complex business logic…</span>
+<span class="k">lead_agent:</span> <span class="p">aidlc-architect-agent</span>
+<span class="k">reviewer:</span> <span class="p">aidlc-architecture-reviewer-agent</span>  <span class="c"># ← REVIEW</span>
+<span class="k">review_artifact:</span> <span class="p">functional-spec</span>
+<span class="k">summary_confirmation:</span> <span class="p">required</span>   <span class="c"># ← APPROVAL behavior</span>
+<span class="k">for_each:</span> <span class="p">unit-of-work</span>
+<span class="k">produces:</span>                       <span class="c"># ← ARTIFACTS</span>
+  - <span class="p">entities</span>
+  - <span class="p">rules</span>
+  - <span class="p">functional-spec</span>
+<span class="k">scopes:</span>                         <span class="c"># ← STAGE MEMBERSHIP (which scopes run it)</span>
+  - <span class="p">enterprise</span>
+  - <span class="p">feature</span>
+  - <span class="p">mvp</span>
+  - <span class="p">classic</span>  …
+<span class="k">---</span>`;
+}
+
+// ---- LIVE MODE: when served by the Python companion, read & push real project config ----
+const SLUG2ID={"workspace-scaffold":"0.1","workspace-detection":"0.2","state-init":"0.3",
+"intent-capture":"1.1","market-research":"1.2","feasibility":"1.3","scope-definition":"1.4","team-formation":"1.5","rough-mockups":"1.6","approval-handoff":"1.7",
+"reverse-engineering":"2.1","practices-discovery":"2.2","requirements-analysis":"2.3","user-stories":"2.4","refined-mockups":"2.5","domain-design":"2.6","units-generation":"2.7","contract-design":"2.8","delivery-planning":"2.9",
+"functional-design":"3.1","nfr-requirements":"3.2","nfr-design":"3.3","infrastructure-design":"3.4","code-generation":"3.5","build-and-test":"3.6","ci-pipeline":"3.7",
+"deployment-pipeline":"4.1","environment-provisioning":"4.2","deployment-execution":"4.3","observability-setup":"4.4","incident-response":"4.5","performance-validation":"4.6","feedback-optimization":"4.7"};
+const ID2SLUG=Object.fromEntries(Object.entries(SLUG2ID).map(([k,v])=>[v,k]));
+const CAP={Minimal:"Minimal",Standard:"Standard",Comprehensive:"Comprehensive",minimal:"Minimal",standard:"Standard",comprehensive:"Comprehensive"};
+let LIVE=null, CANWRITE=false;
+
+function banner(txt, live){
+  let b=document.getElementById("liveBanner");
+  if(!b){b=document.createElement("div");b.id="liveBanner";
+    b.style.cssText="position:sticky;top:0;z-index:50;margin:-22px -22px 18px;padding:9px 22px;font-size:12.5px;font-weight:600;display:flex;gap:12px;align-items:center;";
+    document.body.prepend(b);}
+  b.style.background=live?"var(--p1bg)":"var(--surface-2)";
+  b.style.color=live?"var(--p1)":"var(--ink-2)";
+  b.style.borderBottom="1px solid "+(live?"var(--p1)":"var(--border)");
+  b.innerHTML=txt;
+}
+
+function applyLive(cfg){
+  LIVE=cfg;
+  (Object.entries(cfg.scopes||{})).forEach(([name,sc])=>{
+    const ex=(sc.exec||[]).map(s=>SLUG2ID[s]).filter(Boolean);
+    if(SCOPES[name]){
+      if(sc.depth)SCOPES[name].depth=CAP[sc.depth]||SCOPES[name].depth;
+      if(sc.testStrategy)SCOPES[name].test=CAP[sc.testStrategy]||SCOPES[name].test;
+      if(sc.review_cap)SCOPES[name].reviewCap=sc.review_cap;
+      if(ex.length)SCOPES[name].exec=["0.1","0.2","0.3"].concat(ex.filter(i=>!INIT.includes(i)));
+    } else if(ex.length){
+      SCOPES[name]={label:name,depth:CAP[sc.depth]||"Standard",test:CAP[sc.testStrategy]||"Standard",
+        reviewCap:sc.review_cap||"advisory",cmd:"/aidlc --scope "+name,
+        exec:["0.1","0.2","0.3"].concat(ex.filter(i=>!INIT.includes(i))),
+        use:(sc.description||"Custom scope read from the project.")};
+    }
+  });
+  // reviewer/produces/execution from real stage frontmatter
+  (Object.entries(cfg.stages||{})).forEach(([slug,st])=>{
+    const id=SLUG2ID[slug], node=STAGES.find(x=>x.id===id); if(!node)return;
+    if(st.reviewer)node.rev=st.reviewer.includes("product-lead")?"product-lead":(st.reviewer.includes("architecture")?"architecture":node.rev);
+    if(st.produces&&st.produces.length)node.files=st.produces;
+    if(st.condition)node.cond=st.condition;
+  });
+  if(cfg.defaultScope&&SCOPES[cfg.defaultScope])cur=cfg.defaultScope;
+  const as=cfg.activeState||{};
+  if(as.scope&&SCOPES[as.scope]){cur=as.scope;}
+  if(as.depth){depth=CAP[as.depth]||depth;depthManual=true;}
+  if(as.testStrategy){test=CAP[as.testStrategy]||test;testManual=true;}
+  if(as.review){review=as.review;reviewManual=true;}
+}
+
+// ===== In-browser file access (File System Access API — Chrome/Edge) =====
+let FSMODE=false, DIRH=null;
+const PUSHBTN=`<button onclick="pushToProject()" style="margin-left:auto;border:1px solid var(--p1);background:#fff;color:var(--p1);border-radius:6px;padding:5px 12px;font-weight:700;cursor:pointer;font-family:var(--sans);font-size:12px">⇧ Push changes to project</button>`;
+function connectBtn(label){return `<button onclick="connectFolder()" style="border:1px solid var(--p1);background:var(--p1);color:#fff;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:var(--sans);font-size:12.5px">${label||"📂 Connect project folder"}</button>`;}
+
+// --- tiny YAML-frontmatter readers (mirror the Python companion) ---
+function jfm(t){const m=t.match(/^---\n([\s\S]*?)\n---/);return m?m[1]:"";}
+function jScalar(fm,k){const m=fm.match(new RegExp("^"+k+":\\s*(.+?)\\s*$","m"));return m?m[1].trim():null;}
+function jList(fm,k){
+  const inl=fm.match(new RegExp("^"+k+":\\s*\\[(.*?)\\]\\s*$","m"));
+  if(inl)return inl[1].split(",").map(s=>s.trim()).filter(Boolean);
+  const blk=fm.match(new RegExp("^"+k+":\\s*\\n((?:\\s*-\\s*.+\\n?)+)","m"));
+  if(blk)return blk[1].split("\n").filter(l=>l.trim()).map(l=>l.replace(/^\s*-\s*/,"").trim());
+  return [];
+}
+function setScalar(text,key,val){const fm=jfm(text);let nf;if(new RegExp("^"+key+":","m").test(fm)){nf=fm.replace(new RegExp("^"+key+":.*$","m"),key+": "+val);}else{nf=fm.replace(/\s*$/,"")+"\n"+key+": "+val;}return text.replace(/^---\n[\s\S]*?\n---/,"---\n"+nf+"\n---");}
+function setLine(text,label,val){if(new RegExp("^"+label+"\\s*:","m").test(text))return text.replace(new RegExp("^"+label+"\\s*:.*$","m"),label+": "+val);return text.replace(/\s*$/,"")+"\n"+label+": "+val;}
+function setDefaultScope(text,val){if(/"AWS_AIDLC_DEFAULT_SCOPE"\s*:\s*"[^"]*"/.test(text))return text.replace(/("AWS_AIDLC_DEFAULT_SCOPE"\s*:\s*")[^"]*(")/,"$1"+val+"$2");return text.replace(/\{/,'{\n  "env": { "AWS_AIDLC_DEFAULT_SCOPE": "'+val+'" },');}
+
+async function fsText(h){return await (await h.getFile()).text();}
+async function fsWrite(h,t){const w=await h.createWritable();await w.write(t);await w.close();}
+async function tryDir(parent,name){try{return await parent.getDirectoryHandle(name);}catch(e){return null;}}
+async function tryFile(parent,name){try{return await parent.getFileHandle(name);}catch(e){return null;}}
+
+// --- read a whole project directory into the same cfg shape the Python companion returns ---
+async function readDirCfg(root){
+  const cfg={project:root.name,harness:null,isSource:false,scopes:{},stages:{},defaultScope:null,activeState:null,warnings:[]};
+  let harnessH=null;
+  for(const d of [".claude",".kiro",".codex",".cursor",".opencode"]){const h=await tryDir(root,d);if(h){harnessH=h;cfg.harness=d;break;}}
+  let scopesH = harnessH ? await tryDir(harnessH,"scopes") : null;
+  if(!scopesH){const core=await tryDir(root,"core");if(core){scopesH=await tryDir(core,"scopes");if(scopesH)cfg.isSource=true;}}
+  if(scopesH){for await(const [name,h] of scopesH.entries()){if(h.kind==="file"&&name.endsWith(".md")){const fm=jfm(await fsText(h));const nm=jScalar(fm,"name")||name.replace(/^aidlc-/,"").replace(/\.md$/,"");cfg.scopes[nm]={depth:jScalar(fm,"depth"),testStrategy:jScalar(fm,"testStrategy")||jScalar(fm,"depth"),review_cap:jScalar(fm,"review_cap"),keywords:jList(fm,"keywords"),description:jScalar(fm,"description"),exec:[],_handle:h};}}}
+  const core=await tryDir(root,"core");
+  if(core){const common=await tryDir(core,"aidlc-common");const stagesH=common?await tryDir(common,"stages"):null;
+    if(stagesH){const walk=async(dh)=>{for await(const [name,h] of dh.entries()){if(h.kind==="directory")await walk(h);else if(name.endsWith(".md")){const fm=jfm(await fsText(h));const slug=jScalar(fm,"slug")||name.replace(/\.md$/,"");const scs=jList(fm,"scopes");cfg.stages[slug]={phase:(jScalar(fm,"phase")||"").toLowerCase(),reviewer:jScalar(fm,"reviewer"),produces:jList(fm,"produces"),condition:jScalar(fm,"condition"),scopes:scs,_handle:h};scs.forEach(sc=>{if(cfg.scopes[sc])cfg.scopes[sc].exec.push(slug);});}}};await walk(stagesH);}}
+  if(harnessH){const sh=await tryFile(harnessH,"settings.json");if(sh){const t=await fsText(sh);const m=t.match(/"AWS_AIDLC_DEFAULT_SCOPE"\s*:\s*"([^"]+)"/);cfg.defaultScope=m?m[1]:"classic";cfg._settingsHandle=sh;}}
+  const aidlc=await tryDir(root,"aidlc");const spaces=aidlc?await tryDir(aidlc,"spaces"):null;
+  if(spaces){let newest=null,nt=0;for await(const [sn,sh] of spaces.entries()){if(sh.kind!=="directory")continue;const intents=await tryDir(sh,"intents");if(!intents)continue;for await(const [inm,ih] of intents.entries()){if(ih.kind!=="directory")continue;const fh=await tryFile(ih,"aidlc-state.md");if(fh){const f=await fh.getFile();if(f.lastModified>nt){nt=f.lastModified;newest={fh,f};}}}}
+    if(newest){const t=await newest.f.text();const g=(k)=>{const m=t.match(new RegExp(k+"\\s*[:|]\\s*([A-Za-z0-9_\\-]+)","i"));return m?m[1]:null;};cfg.activeState={scope:g("Scope"),depth:g("Depth"),testStrategy:g("Test[- ]?Strategy"),review:g("Review")};cfg._stateHandle=newest.fh;}}
+  return cfg;
+}
+
+// --- write map changes straight back to the picked folder ---
+async function pushFS(){
+  const log=[];
+  if(isCustom()){
+    const set=execSet();let n=0;
+    for(const [slug,st] of Object.entries(LIVE.stages||{})){
+      if(!st._handle)continue;const id=SLUG2ID[slug];if(!id||INIT.includes(id))continue;
+      const want=set.has(id),has=(st.scopes||[]).includes("custom-map");if(has===want)continue;
+      const tags=has?st.scopes.filter(t=>t!=="custom-map"):(st.scopes||[]).concat("custom-map");
+      let t=await fsText(st._handle);const fm=jfm(t);const block="scopes:\n"+tags.map(x=>"  - "+x).join("\n");
+      const nf=fm.replace(/^scopes:\s*(?:\n(?:\s*-\s*.+\n?)*|\[.*?\]\s*)/m,block+"\n");
+      await fsWrite(st._handle,t.replace(/^---\n[\s\S]*?\n---/,"---\n"+nf+"\n---"));st.scopes=tags;n++;
+    }
+    log.push(n+" stage(s) retagged for a <code>custom-map</code> scope");
+    log.push("⚠ then run once: <code>bun "+(LIVE.harness||".claude")+"/tools/aidlc-graph.ts compile</code> to rebuild the grid");
+  } else {
+    const h=LIVE.scopes[cur]&&LIVE.scopes[cur]._handle;
+    if(h){let t=await fsText(h);t=setScalar(t,"depth",depth);t=setScalar(t,"testStrategy",test);if(review)t=setScalar(t,"review_cap",review);await fsWrite(h,t);log.push("<code>aidlc-"+cur+".md</code> defaults updated");}
+  }
+  if(LIVE._stateHandle){let t=await fsText(LIVE._stateHandle);if(!isCustom())t=setLine(t,"Scope",cur);t=setLine(t,"Depth",depth);t=setLine(t,"Test-Strategy",test);if(review)t=setLine(t,"Review",review);await fsWrite(LIVE._stateHandle,t);log.push("<code>aidlc-state.md</code> updated");}
+  return log;
+}
+
+async function pushToProject(){
+  if(FSMODE){
+    if(!DIRH){alert("Connect a project folder first.");return;}
+    banner("⏳ Writing changes to the project folder…",true);
+    try{const log=await pushFS();banner("✅ Written to project — <span style='font-weight:400'>"+log.join(" · ")+"</span> "+PUSHBTN,true);}
+    catch(e){banner("⚠️ Write failed: "+e+" "+PUSHBTN,false);}
+    return;
+  }
+  if(!CANWRITE){alert("The companion is running read-only. Restart it with --write to push changes.");return;}
+  const changes={activeState:{scope:isCustom()?undefined:cur,depth,testStrategy:test,review}};
+  if(isCustom()){const slugs=[...execSet()].map(id=>ID2SLUG[id]).filter(Boolean);changes.customStages={name:"custom-map",exec:slugs,depth,testStrategy:test,prompt:"configure from the map"};}
+  else changes.scopes={[cur]:{depth,testStrategy:test,review_cap:review}};
+  banner("⏳ Pushing configuration to project files…",true);
+  try{
+    const r=await fetch("./api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(changes)});
+    const res=await r.json();
+    if(res.ok){banner("✅ Pushed to project — "+(res.log||[]).length+" change(s)."+(res.dryRun?" (dry-run)":"")+"  <span style='font-weight:400'>"+(res.log||[]).join(" · ")+"</span>",true);}
+    else {banner("⚠️ "+(res.error||(res.errors||[]).join("; ")||"Write refused"),false);}
+  }catch(e){banner("⚠️ Could not reach the companion: "+e,false);}
+}
+
+// --- IndexedDB: remember the picked folder so re-opening the page can auto-reconnect ---
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("aidlcmap",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbSet(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function idbGet(k){try{const db=await idb();return await new Promise((res,rej)=>{const t=db.transaction("kv","readonly");const q=t.objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}catch(e){return null;}}
+
+async function loadFolder(dirH,remembered){
+  DIRH=dirH;FSMODE=true;CANWRITE=true;
+  banner("⏳ Reading project configuration…",true);
+  try{
+    const cfg=await readDirCfg(dirH);applyLive(cfg);
+    const as=cfg.activeState&&cfg.activeState.scope?`  ·  active run: <b>${cfg.activeState.scope}</b>`:"";
+    banner(`🟢 <b>LIVE — in-browser</b> · <code style="font-family:var(--mono)">${dirH.name}</code> (${cfg.harness||"source"})  ·  default: <b>${cfg.defaultScope||"classic"}</b>${as}  ${PUSHBTN} <button onclick="connectFolder()" style="border:1px solid var(--border);background:#fff;color:var(--ink-2);border-radius:6px;padding:5px 10px;font-weight:600;cursor:pointer;font-family:var(--sans);font-size:12px">↻</button>`,true);
+  }catch(e){banner("⚠️ Could not read that folder: "+e+" "+connectBtn("Try again"),false);}
+  buildScopes();renderRoster();renderCfg();render();
+}
+async function connectFolder(){
+  if(!window.showDirectoryPicker){alert("This browser can't open folders directly. Use Chrome or Edge, or run the Python companion.");return;}
+  let h;try{h=await window.showDirectoryPicker({mode:"readwrite",id:"aidlc-project"});}catch(e){return;}
+  try{await idbSet("dir",h);}catch(e){}
+  await loadFolder(h,false);
+}
+
+(async function boot(){
+  // Mode 1: served by the Python companion (works in every browser)
+  try{
+    const meta=await (await fetch("./api/meta",{cache:"no-store"})).json();
+    CANWRITE=!!meta.write;
+    const cfg=await (await fetch("./api/config",{cache:"no-store"})).json();
+    applyLive(cfg);
+    const proj=(cfg.project||"").split("/").slice(-2).join("/");
+    banner(`🟢 <b>LIVE</b> — <code style="font-family:var(--mono)">${proj}</code> (${cfg.harness||"source"})  ·  default: <b>${cfg.defaultScope||"classic"}</b>`+
+      (cfg.activeState&&cfg.activeState.scope?`  ·  active run: <b>${cfg.activeState.scope}</b>`:"")+
+      `  ${CANWRITE?PUSHBTN:'<span style="margin-left:auto;font-weight:600">🔒 Read-only</span>'}`,true);
+    buildScopes();renderRoster();renderCfg();render();return;
+  }catch(e){}
+  // Mode 2: opened as a file — use the in-browser File System Access API (Chrome/Edge)
+  if(window.showDirectoryPicker){
+    let auto=false;
+    try{const saved=await idbGet("dir");if(saved&&(await saved.queryPermission({mode:"readwrite"}))==="granted"){await loadFolder(saved,true);auto=true;}}catch(e){}
+    if(!auto){
+      banner(`📂 <b>Connect your AI-DLC project</b> to read &amp; edit its real configuration — one click, no terminal. ${connectBtn()}`,false);
+      buildScopes();renderRoster();renderCfg();render();
+    }
+    return;
+  }
+  // Mode 3: no API (Safari/Firefox) — demo data + guidance
+  banner("◎ <b>DEMO</b> — built-in reference data. To read &amp; edit a real project, open this file in <b>Chrome or Edge</b> (one-click folder connect), or run the Python companion.",false);
+  buildScopes();renderRoster();renderCfg();render();
+})();
+</script>
+
+
+</body></html>

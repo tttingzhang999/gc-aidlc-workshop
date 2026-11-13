@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "inventrix-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/opt/node@22/bin:$PATH && cd inventrix-code && pnpm --filter api dev"],
+      "port": 3000
+    },
+    {
+      "name": "inventrix-frontend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/opt/node@22/bin:$PATH && cd inventrix-code && pnpm --filter frontend dev --port 5173 --strictPort"],
+      "port": 5173
+    }
+  ]
+}
