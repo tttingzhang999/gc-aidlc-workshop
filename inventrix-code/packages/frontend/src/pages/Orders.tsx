@@ -15,6 +15,7 @@ export default function Orders() {
     error,
     loading,
     reload,
+    setData,
   } = useApi<Order[]>("/api/orders");
   const listRef = useRef<HTMLOListElement>(null);
 
@@ -78,7 +79,17 @@ export default function Orders() {
             className="absolute top-0 bottom-0 left-[0.95rem] w-0.5 bg-gradient-to-b from-neon-pink via-neon-violet to-neon-cyan md:left-[1.45rem]"
           />
           {orders.map((order) => (
-            <OrderTimelineCard key={order.id} order={order} />
+            <OrderTimelineCard
+              key={order.id}
+              order={order}
+              onCancelled={(id) =>
+                setData((current) =>
+                  (current ?? []).map((o) =>
+                    o.id === id ? { ...o, status: "cancelled" } : o,
+                  ),
+                )
+              }
+            />
           ))}
         </ol>
       )}

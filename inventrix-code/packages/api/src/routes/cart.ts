@@ -3,7 +3,12 @@ import { getDb } from '../db/index.js';
 import { asyncRoute, parseId } from '../http.js';
 import { identify, AuthRequest } from '../middleware/auth.js';
 import { protectedRouteRateLimit } from '../middleware/rateLimit.js';
-import { unitPrice } from '../services/pricing.js';
+import {
+  isPriceTier,
+  PRICE_TIER,
+  tierMultiplier,
+  unitPrice,
+} from '../services/pricing.js';
 
 interface CartRow {
   product_id: number;
@@ -40,7 +45,8 @@ router.get(
         image_url: r.image_url,
         stock: r.stock,
         quantity: r.quantity,
-        penalty: !!r.penalty,
+        penalty: r.penalty,
+        multiplier: tierMultiplier(r.penalty),
         price: unitPrice(r.price, r.penalty),
       })),
     );
@@ -51,7 +57,8 @@ router.delete(
   '/:productId',
   asyncRoute(async (req: AuthRequest, res) => {
     const productId = parseId(req.params.productId);
-    const penalty = req.query.penalty === '1' ? 1 : 0;
+    const requested = Number(req.query.penalty ?? PRICE_TIER.normal);
+    const penalty = isPriceTier(requested) ? requested : PRICE_TIER.normal;
     if (productId !== null) {
       const db = await getDb();
       await db.query(

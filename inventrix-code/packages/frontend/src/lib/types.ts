@@ -112,16 +112,20 @@ export interface InventoryItem {
 export interface CartItem {
   product_id: number;
   name: string;
-  /** Unit price as charged (already 10x for penalty items). */
+  /** Unit price as charged (already multiplied for penalty items). */
   price: number;
   stock: number;
   image_url: string | null;
   quantity: number;
-  /** Claimed after losing the Gomoku game. */
-  penalty: boolean;
+  /** Price tier: 0 list price, 1 claimed after losing, 2 claimed after surrendering. */
+  penalty: PriceTier;
+  /** How many times the list price `price` is. */
+  multiplier: number;
 }
+export type PriceTier = 0 | 1 | 2;
 export type GomokuCell = "black" | "white" | null;
-export type GomokuStatus = "playing" | "won" | "lost" | "draw";
+export type GomokuStatus =
+  "playing" | "won" | "lost" | "draw" | "surrendered";
 /** The game (rules, computer moves, results) lives on the server. */
 export interface GomokuGame {
   id: number;

@@ -4,6 +4,7 @@ import { asyncRoute, parseId } from '../http.js';
 import { identify, AuthRequest } from '../middleware/auth.js';
 import { gameRateLimit } from '../middleware/rateLimit.js';
 import { addToCart } from '../services/cart.js';
+import { PRICE_TIER, tierMultiplier } from '../services/pricing.js';
 import {
   BOARD_SIZE,
   Cell,
@@ -21,11 +22,18 @@ interface GameRow {
   owner: string;
   board: string;
   layout: string;
-  status: 'playing' | 'won' | 'lost' | 'draw';
+  status: 'playing' | 'won' | 'lost' | 'draw' | 'surrendered';
   claimed: number;
 }
 
 const GAME_COLUMNS = 'id, owner, board, layout, status, claimed';
+
+// Price tier of the cart lines a finished game claims; games missing here cannot be claimed.
+const CLAIM_TIER: Partial<Record<GameRow['status'], number>> = {
+  won: PRICE_TIER.normal,
+  surrendered: PRICE_TIER.surrendered,
+  lost: PRICE_TIER.lost,
+};
 
 const serialize = (game: GameRow, extra: Record<string, unknown> = {}) => ({
   id: game.id,
@@ -152,15 +160,41 @@ router.post(
   }),
 );
 
+// Give up a game in play. The stones already placed can then be claimed at the surrender price.
+router.post(
+  '/games/:id/surrender',
+  asyncRoute(async (req: AuthRequest, res) => {
+    const db = await getDb();
+    const game = await loadGame(db, req.params.id, req.owner);
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+    if (game.status !== 'playing') {
+      return res.status(400).json({ error: 'Game is already over' });
+    }
+
+    const [updated] = await db.query<GameRow>(
+      `UPDATE gomoku_games SET status = 'surrendered'
+       WHERE id = $1::int AND status = 'playing'
+       RETURNING ${GAME_COLUMNS}`,
+      [game.id],
+    );
+    if (!updated) {
+      return res.status(409).json({ error: 'Game was updated by another move' });
+    }
+    res.json(serialize(updated));
+  }),
+);
+
 // Add the products under the player's black stones to the server-side cart.
-// Allowed once per finished game: after a win at list price, after a loss at the penalty price.
+// Allowed once per finished game: list price after a win, the surrender price after giving up,
+// the penalty price after a loss.
 router.post(
   '/games/:id/claim',
   asyncRoute(async (req: AuthRequest, res) => {
     const db = await getDb();
     const game = await loadGame(db, req.params.id, req.owner);
     if (!game) return res.status(404).json({ error: 'Game not found' });
-    if (game.status !== 'won' && game.status !== 'lost') {
+    const tier = CLAIM_TIER[game.status];
+    if (tier === undefined) {
       return res
         .status(400)
         .json({ error: 'Only finished games with a winner can be claimed' });
@@ -171,7 +205,6 @@ router.post(
 
     const board: Cell[][] = JSON.parse(game.board);
     const layout: number[] = JSON.parse(game.layout);
-    const penalty = game.status === 'lost' ? 1 : 0;
 
     const counts = new Map<number, number>();
     board.forEach((row, r) =>
@@ -197,7 +230,7 @@ router.post(
           game.owner,
           productId,
           count,
-          penalty,
+          tier,
         );
         if (quantity !== null) lines.push({ product_id: productId, quantity });
       }
@@ -207,7 +240,7 @@ router.post(
     if (!added) {
       return res.status(400).json({ error: 'Already added to cart' });
     }
-    res.json({ added, penalty: !!penalty });
+    res.json({ added, multiplier: tierMultiplier(tier) });
   }),
 );
 

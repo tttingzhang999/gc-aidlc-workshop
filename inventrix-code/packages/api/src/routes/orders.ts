@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { getDb } from '../db/index.js';
+import { Router, type Response } from 'express';
+import { getDb, type Queryable } from '../db/index.js';
 import { asyncRoute, parseId } from '../http.js';
 import {
   authenticate,
@@ -19,6 +19,56 @@ interface CartLine {
 }
 
 class CheckoutError extends Error {}
+
+class OrderActionError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+const ORDER_STATUSES = [
+  'pending',
+  'processing',
+  'shipped',
+  'delivered',
+  'cancelled',
+] as const;
+type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+const isOrderStatus = (value: unknown): value is OrderStatus =>
+  ORDER_STATUSES.includes(value as OrderStatus);
+
+// Put a cancelled order's units back on the shelf; products deleted since then are skipped.
+const restoreStock = async (tx: Queryable, orderId: number) => {
+  await tx.query(
+    `UPDATE products p SET stock = p.stock + oi.quantity
+     FROM (
+       SELECT product_id, SUM(quantity)::int AS quantity
+       FROM order_items WHERE order_id = $1::int
+       GROUP BY product_id
+     ) oi
+     WHERE p.id = oi.product_id`,
+    [orderId],
+  );
+};
+
+const lockOrder = async (tx: Queryable, id: number) => {
+  const [order] = await tx.query<{ user_id: number; status: OrderStatus }>(
+    'SELECT user_id, status FROM orders WHERE id = $1::int FOR UPDATE',
+    [id],
+  );
+  if (!order) throw new OrderActionError(404, 'Order not found');
+  return order;
+};
+
+const sendOrderActionError = (error: unknown, res: Response): boolean => {
+  if (!(error instanceof OrderActionError)) return false;
+  res.status(error.status).json({ error: error.message });
+  return true;
+};
 
 const router = Router();
 
@@ -169,22 +219,73 @@ router.post(
   }),
 );
 
+// Customers can cancel their own order while it is still pending; the units go back into stock.
+router.post(
+  '/:id/cancel',
+  protectedRouteRateLimit,
+  authenticate,
+  asyncRoute(async (req: AuthRequest, res) => {
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(404).json({ error: 'Order not found' });
+    const db = await getDb();
+
+    try {
+      await db.transaction(async (tx) => {
+        const order = await lockOrder(tx, id);
+        if (req.user?.role !== 'admin' && order.user_id !== req.user?.id) {
+          throw new OrderActionError(403, 'Access denied');
+        }
+        if (order.status !== 'pending') {
+          throw new OrderActionError(
+            409,
+            'Only pending orders can be cancelled',
+          );
+        }
+        await tx.query(
+          "UPDATE orders SET status = 'cancelled' WHERE id = $1::int",
+          [id],
+        );
+        await restoreStock(tx, id);
+      });
+      res.json({ id, status: 'cancelled' });
+    } catch (error) {
+      if (!sendOrderActionError(error, res)) throw error;
+    }
+  }),
+);
+
 router.patch(
   '/:id/status',
   protectedRouteRateLimit,
   authenticate,
   requireAdmin,
   asyncRoute(async (req: AuthRequest, res) => {
-    const { status } = req.body;
-    const id = parseId(req.params.id);
-    if (id !== null) {
-      const db = await getDb();
-      await db.query('UPDATE orders SET status = $1::text WHERE id = $2::int', [
-        status,
-        id,
-      ]);
+    const { status } = req.body ?? {};
+    if (!isOrderStatus(status)) {
+      return res.status(400).json({ error: 'Invalid order status' });
     }
-    res.json({ id: req.params.id, status });
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(404).json({ error: 'Order not found' });
+    const db = await getDb();
+
+    try {
+      await db.transaction(async (tx) => {
+        const order = await lockOrder(tx, id);
+        if (order.status === status) return;
+        // Its stock is already back on the shelf, so reopening it could oversell.
+        if (order.status === 'cancelled') {
+          throw new OrderActionError(409, 'Cancelled orders cannot be changed');
+        }
+        await tx.query('UPDATE orders SET status = $1::text WHERE id = $2::int', [
+          status,
+          id,
+        ]);
+        if (status === 'cancelled') await restoreStock(tx, id);
+      });
+      res.json({ id: req.params.id, status });
+    } catch (error) {
+      if (!sendOrderActionError(error, res)) throw error;
+    }
   }),
 );
 

@@ -102,7 +102,7 @@ export default function AdminOrders() {
       label="Set status"
       compact
       value={order.status}
-      disabled={savingId === order.id}
+      disabled={savingId === order.id || order.status === "cancelled"}
       onChange={(e) => void updateStatus(order, e.target.value as OrderStatus)}
       options={STATUS_OPTIONS}
       data-testid={`order-status-${order.id}`}

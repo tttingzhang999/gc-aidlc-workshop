@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import LaunchOverlay from "../components/LaunchOverlay";
 import PageHeading from "../components/PageHeading";
-import { PENALTY_MULTIPLIER, useCart } from "../context/CartContext";
+import {
+  PENALTY_MULTIPLIER,
+  SURRENDER_MULTIPLIER,
+  useCart,
+} from "../context/CartContext";
 import { celebrate } from "../fx/celebrate";
 import { gsap, useGSAP } from "../fx/gsap";
 import { celebrateOrder } from "../fx/orderFx/celebrateOrder";
@@ -15,6 +19,7 @@ import { formatPrice } from "../lib/format";
 import type { GomokuGame, Product } from "../lib/types";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import Skeleton from "../ui/Skeleton";
 import { useToast } from "../ui/Toast";
 
@@ -33,7 +38,7 @@ const TAUNTS = [
 
 interface ClaimResult {
   added: { product_id: number; quantity: number }[];
-  penalty: boolean;
+  multiplier: number;
 }
 
 interface CartFx {
@@ -103,6 +108,8 @@ export default function Gomoku() {
   const [lastMove, setLastMove] = useState<[number, number] | null>(null);
   const [busy, setBusy] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [confirmingSurrender, setConfirmingSurrender] = useState(false);
+  const [surrendering, setSurrendering] = useState(false);
   const [cartFx, setCartFx] = useState<CartFx | null>(null);
 
   useEffect(() => {
@@ -196,7 +203,7 @@ export default function Gomoku() {
   };
 
   // `added[].quantity` is the cart line's new total, so count this claim from the board instead.
-  const showCartFx = ({ added, penalty }: ClaimResult) => {
+  const showCartFx = ({ added, multiplier }: ClaimResult) => {
     const addedIds = new Set(added.map((a) => a.product_id));
     const lines = chosen
       .filter(({ product }) => addedIds.has(product.id))
@@ -205,7 +212,6 @@ export default function Gomoku() {
         quantity: Math.min(quantity, product.stock),
       }));
     if (lines.length === 0) return;
-    const multiplier = penalty ? PENALTY_MULTIPLIER : 1;
     const total = lines.reduce(
       (sum, l) => sum + l.product.price * multiplier * l.quantity,
       0,
@@ -223,6 +229,24 @@ export default function Gomoku() {
       imageUrl:
         lines.find((l) => l.product.image_url)?.product.image_url ?? null,
     });
+  };
+
+  const surrender = async () => {
+    if (!game) return;
+    setSurrendering(true);
+    try {
+      setGame(
+        await apiFetch<GomokuGame>(`/api/gomoku/games/${game.id}/surrender`, {
+          method: "POST",
+        }),
+      );
+      setLastMove(null);
+    } catch (err: unknown) {
+      toast.error("Could not surrender", toApiError(err).message);
+    } finally {
+      setSurrendering(false);
+      setConfirmingSurrender(false);
+    }
   };
 
   const claim = async () => {
@@ -273,9 +297,16 @@ export default function Gomoku() {
   );
 
   const status = game?.status ?? "playing";
-  const penalty = status === "lost";
-  const unitPrice = (p: Product) =>
-    penalty ? p.price * PENALTY_MULTIPLIER : p.price;
+  const multiplier =
+    status === "lost"
+      ? PENALTY_MULTIPLIER
+      : status === "surrendered"
+        ? SURRENDER_MULTIPLIER
+        : 1;
+  const penalty = multiplier > 1;
+  const claimable =
+    status === "won" || status === "lost" || status === "surrendered";
+  const unitPrice = (p: Product) => p.price * multiplier;
   const gameOver = status !== "playing";
   const ready = game !== null && Object.keys(products).length > 0;
   const stoneCount = chosen.reduce((n, c) => n + c.quantity, 0);
@@ -285,7 +316,9 @@ export default function Gomoku() {
       ? "🎉 You win!"
       : status === "lost"
         ? "🤖 Computer wins!"
-        : status === "draw"
+        : status === "surrendered"
+          ? "🏳️ You surrendered"
+          : status === "draw"
           ? "🤝 Draw"
           : busy
             ? "🤖 Computer is thinking…"
@@ -295,7 +328,9 @@ export default function Gomoku() {
       ? "text-neon-lime"
       : status === "lost"
         ? "text-neon-red"
-        : "text-neon-cyan";
+        : status === "surrendered"
+          ? "text-neon-orange"
+          : "text-neon-cyan";
 
   return (
     <div className="flex flex-col gap-8">
@@ -310,7 +345,18 @@ export default function Gomoku() {
         kicker="Arcade deck"
         title="GOMOKU"
         actions={
-          <Button
+          <div className="flex flex-wrap gap-3">
+            {game?.status === "playing" && (
+              <Button
+                variant="danger"
+                onClick={() => setConfirmingSurrender(true)}
+                disabled={busy || surrendering}
+                data-testid="gomoku-surrender"
+              >
+                🏳️ 我認輸
+              </Button>
+            )}
+            <Button
             variant="ghost"
             onClick={() => void newGame()}
             disabled={busy}
@@ -318,12 +364,14 @@ export default function Gomoku() {
           >
             🔄 New game
           </Button>
+          </div>
         }
       />
       <p className="max-w-3xl text-white/65">
         You play black against the computer. Get {WIN_LENGTH} in a row to win,
-        then add the products under your black stones to your cart. If you lose
-        you can still add them, but at {PENALTY_MULTIPLIER}× the price.
+        then add the products under your black stones to your cart. Surrender
+        and you can add them at {SURRENDER_MULTIPLIER}× the price; lose and they
+        cost {PENALTY_MULTIPLIER}×.
       </p>
 
       <p
@@ -334,7 +382,7 @@ export default function Gomoku() {
         {statusText}
       </p>
 
-      {game && (status === "won" || status === "lost") && (
+      {game && claimable && (
         <Card
           glow={penalty ? "none" : "lime"}
           className={`flex max-w-3xl flex-col gap-4 ${penalty ? "border-neon-red/60" : "border-neon-lime/40"}`}
@@ -344,7 +392,7 @@ export default function Gomoku() {
             className={`font-display text-xl font-black tracking-tight ${penalty ? "text-neon-red" : "text-neon-lime"}`}
           >
             {penalty
-              ? `💸 Penalty prices, ${PENALTY_MULTIPLIER}× (${stoneCount} stones)`
+              ? `💸 Penalty prices, ${multiplier}× (${stoneCount} stones)`
               : `🎁 Your prizes (${stoneCount} stones)`}
           </h2>
           <ul className="flex max-h-52 flex-col gap-1 overflow-auto pr-2">
@@ -468,6 +516,16 @@ export default function Gomoku() {
       )}
 
       {taunt && <TauntDialog text={taunt} onClose={() => setTaunt(null)} />}
+
+      <ConfirmDialog
+        open={confirmingSurrender}
+        title="確定認輸？"
+        message={`投降輸一半：盤面上黑子下的商品可以用 ${SURRENDER_MULTIPLIER} 倍價格加入購物車。`}
+        confirmLabel="我認輸"
+        busy={surrendering}
+        onConfirm={() => void surrender()}
+        onCancel={() => setConfirmingSurrender(false)}
+      />
     </div>
   );
 }

@@ -1,13 +1,18 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { gsap, useGSAP } from "../fx/gsap";
 import { apiFetch, toApiError } from "../lib/api";
 import { formatDateTime, formatPrice } from "../lib/format";
 import type { Order, OrderDetail } from "../lib/types";
+import Button from "../ui/Button";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import StatusPill from "../ui/StatusPill";
 import Spinner from "../ui/Spinner";
+import { useToast } from "../ui/Toast";
 
 interface OrderTimelineCardProps {
   order: Order;
+  onCancelled: (orderId: number) => void;
 }
 
 type DetailState =
@@ -17,9 +22,15 @@ type DetailState =
   | { kind: "ready"; detail: OrderDetail };
 
 /** One order on the timeline; expands to lazy-load its line items from GET /api/orders/:id. */
-export default function OrderTimelineCard({ order }: OrderTimelineCardProps) {
+export default function OrderTimelineCard({
+  order,
+  onCancelled,
+}: OrderTimelineCardProps) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<DetailState>({ kind: "idle" });
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -54,6 +65,26 @@ export default function OrderTimelineCard({ order }: OrderTimelineCardProps) {
       setDetail({ kind: "ready", detail: data });
     } catch (err: unknown) {
       setDetail({ kind: "error", message: toApiError(err).message });
+    }
+  };
+
+  const cancelOrder = async () => {
+    setCancelling(true);
+    try {
+      await apiFetch<{ id: number; status: string }>(
+        `/api/orders/${order.id}/cancel`,
+        { method: "POST" },
+      );
+      onCancelled(order.id);
+      toast.success(
+        `Order #${order.id} cancelled`,
+        "The items are back in stock.",
+      );
+    } catch (err: unknown) {
+      toast.error(`Could not cancel order #${order.id}`, toApiError(err).message);
+    } finally {
+      setCancelling(false);
+      setConfirmingCancel(false);
     }
   };
 
@@ -150,10 +181,35 @@ export default function OrderTimelineCard({ order }: OrderTimelineCardProps) {
                   {formatPrice(order.total)}
                 </dd>
               </dl>
+              {order.status === "pending" && (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setConfirmingCancel(true)}
+                  disabled={cancelling}
+                  data-testid={`order-cancel-${order.id}`}
+                  className="self-end"
+                >
+                  取消訂單
+                </Button>
+              )}
             </div>
           </div>
         )}
       </div>
+      {/* Portaled: the GSAP transform left on this <li> would trap a fixed overlay. */}
+      {createPortal(
+        <ConfirmDialog
+        open={confirmingCancel}
+        title={`取消訂單 #${order.id}？`}
+        message="取消後訂單無法恢復，商品會放回庫存。"
+        confirmLabel="取消訂單"
+        busy={cancelling}
+        onConfirm={() => void cancelOrder()}
+        onCancel={() => setConfirmingCancel(false)}
+        />,
+        document.body,
+      )}
     </li>
   );
 }
