@@ -22,6 +22,7 @@ import AdminOrders from "./pages/AdminOrders";
 import AdminInventory from "./pages/AdminInventory";
 import Cart from "./pages/Cart";
 import Gomoku from "./pages/Gomoku";
+import Architecture from "./pages/Architecture";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import type { RedirectState } from "./lib/redirect";
@@ -61,6 +62,7 @@ function App() {
               <Route index element={<Storefront />} />
               <Route path="products/:id" element={<ProductDetail />} />
               <Route path="gomoku" element={<Gomoku />} />
+              <Route path="architecture" element={<Architecture />} />
               <Route path="cart" element={<Cart />} />
               <Route
                 path="orders"
