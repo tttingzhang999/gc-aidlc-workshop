@@ -22,6 +22,7 @@ import AdminOrders from "./pages/AdminOrders";
 import AdminInventory from "./pages/AdminInventory";
 import Cart from "./pages/Cart";
 import Gomoku from "./pages/Gomoku";
+import Architecture from "./pages/Architecture";
 import Role from "./pages/Role";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
@@ -62,6 +63,7 @@ function App() {
               <Route index element={<Storefront />} />
               <Route path="products/:id" element={<ProductDetail />} />
               <Route path="gomoku" element={<Gomoku />} />
+              <Route path="architecture" element={<Architecture />} />
               <Route path="cart" element={<Cart />} />
               <Route path="role" element={<Role />} />
               <Route

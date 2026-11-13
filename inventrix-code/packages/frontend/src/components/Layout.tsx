@@ -45,6 +45,11 @@ function useNavItems(): NavItem[] {
       match: (p) => p.startsWith("/gomoku"),
     },
     {
+      to: "/architecture",
+      label: "Architecture",
+      match: (p) => p.startsWith("/architecture"),
+    },
+    {
       to: "/cart",
       label: "Cart",
       match: (p) => p.startsWith("/cart"),
@@ -268,7 +273,7 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               data-menu-item
-              className={`font-display text-5xl font-black tracking-tighter uppercase ${item.match(pathname) ? "text-gradient" : "text-white"}`}
+              className={`font-display text-[clamp(1.75rem,9vw,3rem)] font-black tracking-tighter uppercase ${item.match(pathname) ? "text-gradient" : "text-white"}`}
             >
               {item.label}
               {item.badge ? ` (${item.badge})` : ""}

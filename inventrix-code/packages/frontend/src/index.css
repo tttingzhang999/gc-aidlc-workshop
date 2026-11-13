@@ -93,6 +93,11 @@
       transform: translateX(100%);
     }
   }
+  @keyframes arch-dash {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
 }
 
 @layer base {
